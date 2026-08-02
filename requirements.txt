@@ -1,0 +1,53 @@
+# Core dependencies for Object Detection on Jetson Nano
+# Optimized for ARM64 + CUDA (Jetson) and x86_64 (AWS/Laptop)
+
+# PyTorch for ARM64 (Jetson Nano)
+# torch==2.0.1+cu118
+# torchvision==0.15.2+cu118
+
+# PyTorch for x86_64 (AWS/Laptop)
+torch==2.0.1+cu118
+torchvision==0.15.2+cu118
+torchaudio==2.0.2
+
+# Ultralytics YOLOv8 (Object Detection)
+ultralytics==8.0.196
+
+# ONNX Runtime for GPU acceleration
+onnx==1.14.0
+onnxruntime-gpu==1.16.0
+
+# OpenCV for image processing
+opencv-python-headless==4.8.0.76
+
+# NumPy for numerical operations
+numpy==1.24.3
+
+# For TensorRT optimization (NVIDIA only)
+nvidia-pyindex==1.0.9
+nvidia-tensorrt==8.5.3.1
+
+# For performance monitoring
+psutil==5.9.5
+
+# For logging
+python-json-logger==2.0.7
+
+# For configuration management
+pydantic==2.5.2
+pyyaml==6.0.1
+
+# For testing
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# For type hints
+mypy==1.7.0
+
+# For code formatting
+black==23.10.1
+isort==5.12.0
+flake8==6.1.0
+
+# For documentation
+docstring-parser==0.15
