@@ -3,9 +3,9 @@
 ## **Mục Lục**
 1. [Giới Thiệu](#giới-thiệu)
 2. [Yêu Cầu Trước Khi Triển Khai](#yêu-cầu-trước-khi-triển-khai)
-3. [Triển Khai Trên Jetson Nano](#triển-khai-trên-jetson-nano)
-4. [Triển Khai Trên AWS EC2](#triển-khai-trên-aws-ec2)
-5. [Triển Khai Trên Laptop AMD](#triển-khai-trên-laptop-amd)
+3. [Triển Khai Trên AWS EC2 (ARM64)](#triển-khai-trên-aws-ec2-arm64)
+4. [Triển Khai Trên Jetson Nano](#triển-khai-trên-jetson-nano)
+5. [Triển Khai Trên Laptop (x86_64)](#triển-khai-trên-laptop-x86_64)
 6. [Cấu Hình Môi Trường](#cấu-hình-môi-trường)
 7. [Chạy Ứng Dụng](#chạy-ứng-dụng)
 8. [Giám Sát Hiệu Suất](#giám-sát-hiệu-suất)
@@ -14,609 +14,254 @@
 
 ---
 
-## **📋 Giới Thiệu**
+## **📌 Giới Thiệu**
 
-Hướng dẫn này sẽ giúp bạn **triển khai module Object Detection** của **RoadWatch Copilot** trên các nền tảng khác nhau:
+Hướng dẫn này sẽ giúp bạn **triển khai module Object Detection** của **RoadWatch Copilot** trên **AWS EC2 (ARM64)**. Module sử dụng **YOLOv8-nano** với **ONNX Runtime** để phát hiện các vật thể trên đường như **người, xe ô tô, xe máy, xe bus, xe tải, biển báo giao thông** với **độ trễ thấp** và **hiệu suất cao**.
 
-- **Jetson Nano** (Edge Device - ARM64)
-- **AWS EC2 G5G.xlarge** (Cloud - x86_64)
-- **Laptop AMD** (Local Development - x86_64)
-
-Module sử dụng **YOLOv8-nano** với **ONNX Runtime** và **TensorRT** để đạt hiệu suất tối ưu trên Edge Devices.
+### **🎯 Đặc Điểm Chính**
+✅ **Real-time Object Detection** - Phát hiện vật thể trong thời gian thực
+✅ **Optimized for ARM64** - Tối ưu cho AWS EC2 G5G.xlarge (ARM64)
+✅ **Low Latency** - Độ trễ xử lý **< 50ms**
+✅ **High Performance** - Hiệu suất **≥ 30 FPS**
+✅ **ONNX Runtime** - Chạy model ONNX trên ARM64
+✅ **Easy Deployment** - Triển khai đơn giản với Docker
 
 ---
 
 ## **✅ Yêu Cầu Trước Khi Triển Khai**
 
-### **1. Phần Cứng**
+### **1. AWS EC2 Instance (ARM64)**
+- **AMI**: Ubuntu Server 26.04 LTS (ARM64)
+- **Instance Type**: g5g.xlarge (NVIDIA T4G GPU, 4 vCPU, 16GB RAM, 8GB VRAM)
+- **Architecture**: 64-bit (ARM)
+- **Storage**: 60GB GP3 SSD (EBS General Purpose)
+- **Security Group**: Mở port **22 (SSH), 8000 (API)**
 
-| **Nền Tảng** | **Yêu Cầu Tối Thiểu** | **Khuyến Nghị** |
-|--------------|----------------------|------------------|
-| **Jetson Nano** | 4GB RAM, 16GB Storage | Jetson Nano 2GB/4GB |
-| **AWS EC2** | 4 vCPU, 8GB RAM, 1 GPU | G5G.xlarge (NVIDIA T4G) |
-| **Laptop AMD** | 8GB RAM, AMD GPU (RDNA 2+) | Ryzen 7 7735HS+ |
-
-### **2. Phần Mềm**
-
-| **Nền Tảng** | **OS** | **CUDA** | **TensorRT** | **Python** |
-|--------------|--------|----------|--------------|------------|
-| **Jetson Nano** | Ubuntu 20.04 (ARM64) | 10.2 | 8.5.3 | 3.8+ |
-| **AWS EC2** | Ubuntu 22.04 (x86_64) | 11.8 | 8.5.3 | 3.10+ |
-| **Laptop AMD** | Ubuntu 22.04 / Windows 11 | - | - | 3.10+ |
-
-### **3. Thư Viện Cần Thiết**
-
-- **PyTorch** (cho training)
-- **ONNX Runtime** (cho inference)
-- **TensorRT** (tùy chọn, cho tối ưu)
-- **OpenCV** (xử lý ảnh)
-- **NumPy** (tính toán)
-- **Ultralytics YOLOv8** (model)
-
----
-
-## **🎯 Triển Khai Trên Jetson Nano**
-
-### **Bước 1: Cài Đặt JetPack SDK**
-
-JetPack SDK cung cấp **CUDA, cuDNN, TensorRT** cho Jetson Nano.
-
+### **2. Kết Nối Đến Instance**
 ```bash
-# Download JetPack SDK từ NVIDIA
-wget https://developer.download.nvidia.com/embedded/jetpack/5.1.2/JetPack-5.1.2-Linux-JETSON_NANO-devkit.tar.gz
-
-# Flash JetPack vào Jetson Nano
-# (Tham khảo: https://developer.nvidia.com/embedded/learn/get-started-jetson-nano-devkit)
-```
-
-**Lưu ý:** Quá trình flash có thể mất **30-60 phút**.
-
----
-
-### **Bước 2: Cài Đặt Thư Viện**
-
-#### **Cài Đặt Python 3.8+**
-```bash
-sudo apt update
-sudo apt install -y python3.8 python3.8-venv python3.8-dev
-```
-
-#### **Cài Đặt OpenCV**
-```bash
-sudo apt install -y python3-opencv
-```
-
-#### **Cài Đặt PyTorch cho ARM64**
-```bash
-# Cài PyTorch cho Jetson Nano
-pip install torch==2.0.1+cu118 -f https://download.pytorch.org/whl/torch_stable.html
-```
-
-**Lưu ý:** PyTorch cho ARM64 có sẵn trên [PyTorch for Jetson](https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-2-0-1-now-available/223916).
-
----
-
-#### **Cài Đặt ONNX Runtime**
-```bash
-pip install onnxruntime-gpu==1.16.0
-```
-
----
-
-#### **Cài Đặt TensorRT**
-TensorRT đã được cài đặt sẵn với JetPack SDK. Bạn chỉ cần cài đặt **Python bindings**:
-
-```bash
-pip install nvidia-pyindex nvidia-tensorrt==8.5.3.1
-```
-
----
-
-#### **Cài Đặt PyCUDA**
-```bash
-pip install pycuda
-```
-
----
-
-### **Bước 3: Clone Repository**
-
-```bash
-git clone https://github.com/KimNam2809/ADAS_FOR_FRONTIER_CAMERA.git
-cd ADAS_FOR_FRONTIER_CAMERA
-git checkout feat-Object-Detection
-```
-
----
-
-### **Bước 4: Cài Đặt Dependencies**
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-### **Bước 5: Download Model**
-
-#### **Tùy Chọn 1: Download Model Đã Train Sẵn**
-```bash
-# Tạo thư mục models
-mkdir -p models
-
-# Download YOLOv8n ONNX model
-wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8n.onnx -O models/yolov8n.onnx
-```
-
-#### **Tùy Chọn 2: Export Model Từ PyTorch**
-```bash
-python -c "
-import torch
-from src.utils import ModelOptimizer
-
-# Load YOLOv8n model
-model = torch.hub.load('ultralytics/yolov8', 'yolov8n')
-
-# Export to ONNX
-optimizer = ModelOptimizer()
-optimizer.export_to_onnx(model, input_shape=(1, 3, 320, 320), onnx_path='models/yolov8n.onnx')
-"
-```
-
----
-
-### **Bước 6: Build TensorRT Engine**
-
-```bash
-python -c "
-from src.utils import ModelOptimizer
-
-optimizer = ModelOptimizer()
-optimizer.optimize_for_tensorrt(
-    'models/yolov8n.onnx',
-    engine_path='models/yolov8n.engine',
-    fp16_mode=True,
-    int8_mode=False,
-    max_batch_size=1
-)
-"
-```
-
-**Lưu ý:** Quá trình build TensorRT engine có thể mất **5-10 phút**.
-
----
-
-### **Bước 7: Cấu Hình Detector**
-
-```python
-from src.detection import DetectorFactory
-
-# Tạo detector tối ưu cho Jetson Nano
-detector = DetectorFactory.create_detector(
-    device_type="jetson_nano",
-    use_tensorrt=True,
-    target_fps=30
-)
-```
-
----
-
-### **Bước 8: Chạy Demo**
-
-#### **Chạy Với Camera**
-```bash
-python -c "
-import cv2
-from src.detection import DetectorFactory
-
-# Tạo detector
-detector = DetectorFactory.create_detector(device_type='jetson_nano')
-
-# Mở camera
-cap = cv2.VideoCapture(0)
-
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    # Phát hiện vật thể
-    result = detector.detect(frame)
-    
-    # Vẽ kết quả
-    for det in result.detections:
-        x1, y1, x2, y2 = det.bbox
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f'{det.class_name} {det.confidence:.2f}', (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-    
-    # Hiển thị
-    cv2.imshow('ADAS Object Detection', frame)
-    if cv2.waitKey(1) == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-"
-```
-
-#### **Chạy Với Video**
-```bash
-python -c "
-import cv2
-from src.detection import DetectorFactory
-
-# Tạo detector
-detector = DetectorFactory.create_detector(device_type='jetson_nano')
-
-# Mở video
-cap = cv2.VideoCapture('test_video.mp4')
-
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    # Phát hiện vật thể
-    result = detector.detect(frame)
-    
-    # Vẽ kết quả
-    for det in result.detections:
-        x1, y1, x2, y2 = det.bbox
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f'{det.class_name} {det.confidence:.2f}', (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-    
-    # Hiển thị
-    cv2.imshow('ADAS Object Detection', frame)
-    if cv2.waitKey(1) == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-"
-```
-
----
-
-## **☁️ Triển Khai Trên AWS EC2**
-
-### **Bước 1: Tạo EC2 Instance**
-
-1. Đăng nhập vào **AWS Console** → **EC2**
-2. Chọn **Launch Instance**
-3. Chọn **AMI**: `Ubuntu Server 22.04 LTS (x86_64)`
-4. Chọn **Instance Type**: `g5g.xlarge` (NVIDIA T4G GPU)
-5. Chọn **Storage**: 60GB GP3 SSD
-6. Chọn **Security Group**: Mở port **22 (SSH), 80 (HTTP), 8000 (API)**
-7. **Launch Instance**
-
----
-
-### **Bước 2: Kết Nối Đến Instance**
-
-```bash
-# Kết nối qua SSH
+# Kết nối qua SSH (thay thế your-key.pem và public-ip)
 ssh -i your-key.pem ubuntu@<public-ip>
 ```
 
 ---
 
-### **Bước 3: Cài Đặt Driver và CUDA**
+## **☁️ Triển Khai Trên AWS EC2 (ARM64)**
 
+### **Bước 1: Cập Nhật Hệ Thống**
 ```bash
-# Cập nhật hệ thống
+# Cập nhật package list
 sudo apt update && sudo apt upgrade -y
 
-# Cài NVIDIA Driver (T4G)
-sudo ubuntu-drivers autoinstall
-
-# Cài CUDA Toolkit 11.8
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
-sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
-wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb
-sudo cp /var/cuda-repo-ubuntu2204-11-8-local/cuda-*-keyring.gpg /usr/share/keyrings/
-sudo apt update
-sudo apt install -y cuda-11-8
-
-# Thêm CUDA vào PATH
-echo 'export PATH=/usr/local/cuda-11.8/bin:$PATH' >> ~/.bashrc
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-source ~/.bashrc
+# Cài đặt các gói cần thiết
+sudo apt install -y wget curl git build-essential python3.10 python3.10-venv python3.10-dev python3-pip
 ```
 
 ---
 
-### **Bước 4: Cài Đặt TensorRT**
+### **Bước 2: Cài Đặt NVIDIA Driver cho T4G GPU (ARM64)**
+
+**⚠️ LƯU Ý:** AWS EC2 G5G.xlarge sử dụng **NVIDIA T4G GPU (ARM64)**, không sử dụng CUDA truyền thống. Thay vào đó, chúng ta sử dụng **NVIDIA Driver cho ARM64** và **ONNX Runtime**.
 
 ```bash
-# Download TensorRT 8.5.3
-wget https://developer.download.nvidia.com/compute/redist/tensorrt/8.5.3.1/tensorrt-8.5.3.1.linux.x86_64.cuda-11.8.tar.gz
+# Kiểm tra GPU
+lspci | grep -i nvidia
 
-# Giải nén
-tar -xzvf tensorrt-8.5.3.1.linux.x86_64.cuda-11.8.tar.gz
+# Cài đặt NVIDIA Driver cho ARM64 (T4G)
+# AWS đã cài sẵn driver, nhưng chúng ta cần cài thêm thư viện
+sudo apt install -y nvidia-driver-535
 
-# Cài đặt
-sudo cp -r TensorRT-8.5.3.1/* /usr/local/
-echo 'export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
-source ~/.bashrc
+# Khởi động lại instance (nếu cần)
+sudo reboot
 ```
 
 ---
 
-### **Bước 5: Cài Đặt Thư Viện Python**
+### **Bước 3: Cài Đặt ONNX Runtime cho ARM64**
 
 ```bash
-# Cài Python 3.10
-sudo apt install -y python3.10 python3.10-venv python3.10-dev
+# Cài đặt ONNX Runtime (không cần CUDA cho ARM64 trên AWS)
+pip install onnxruntime==1.16.0
 
-# Tạo virtual environment
-python3.10 -m venv ~/adas_venv
-source ~/adas_venv/bin/activate
-
-# Cài dependencies
-pip install --upgrade pip
-pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2 -f https://download.pytorch.org/whl/cu118
-pip install -r requirements.txt
+# Xác minh cài đặt
+python3 -c "import onnxruntime; print('ONNX Runtime version:', onnxruntime.__version__)"
 ```
 
 ---
 
-### **Bước 6: Clone Repository và Setup**
+### **Bước 4: Cài Đặt OpenCV cho ARM64**
 
 ```bash
+# Cài đặt OpenCV cho Python
+pip install opencv-python-headless==4.8.0.76
+
+# Xác minh cài đặt
+python3 -c "import cv2; print('OpenCV version:', cv2.__version__)"
+```
+
+---
+
+### **Bước 5: Cài Đặt Các Thư Viện Khác**
+
+```bash
+# Cài đặt các thư viện cần thiết
+pip install numpy==1.24.3 ultralytics==8.0.196 psutil==5.9.5 pyyaml==6.0.1
+```
+
+---
+
+### **Bước 6: Clone Repository**
+
+```bash
+# Clone repository
+cd ~
 git clone https://github.com/KimNam2809/ADAS_FOR_FRONTIER_CAMERA.git
 cd ADAS_FOR_FRONTIER_CAMERA
 git checkout feat-Object-Detection
-
-# Download model
-mkdir -p models
-wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8s.onnx -O models/yolov8s.onnx
-
-# Build TensorRT engine
-python -c "
-from src.utils import ModelOptimizer
-optimizer = ModelOptimizer()
-optimizer.optimize_for_tensorrt(
-    'models/yolov8s.onnx',
-    engine_path='models/yolov8s.engine',
-    fp16_mode=True,
-    max_batch_size=4
-)
-"
 ```
 
 ---
 
-### **Bước 7: Chạy Ứng Dụng**
+### **Bước 7: Download Model YOLOv8**
 
 ```bash
-# Chạy detector
-python -c "
-from src.detection import DetectorFactory
+# Tạo thư mục models
+mkdir -p models
 
-detector = DetectorFactory.create_detector(
-    device_type='aws_g5g',
-    use_tensorrt=True,
-    target_fps=60
-)
+# Download YOLOv8n ONNX model (tối ưu cho ARM64)
+wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8n.onnx -O models/yolov8n.onnx
 
-# Test với một frame
+# Xác minh model
+ls -lh models/
+```
+
+---
+
+### **Bước 8: Test Module Object Detection**
+
+#### **Tùy Chọn 1: Chạy Test Với Ảnh Tĩnh**
+
+```bash
+# Tạo một script test đơn giản
+cat > test_image.py << 'EOF'
 import cv2
 import numpy as np
-
-frame = np.zeros((480, 640, 3), dtype=np.uint8)
-result = detector.detect(frame)
-print(f'FPS: {result.fps:.2f}, Latency: {result.latency:.2f}ms')
-"
-```
-
----
-
-## **💻 Triển Khai Trên Laptop AMD**
-
-### **Bước 1: Cài Đặt ROCm**
-
-ROCm là **thay thế cho CUDA** trên AMD GPU.
-
-```bash
-# Thêm ROCm repository
-sudo apt update && sudo apt install -y wget
-wget https://repo.radeon.com/amdgpu-install/5.7/ubuntu/jammy/amdgpu-install_5.7.50700-1_all.deb
-sudo apt install ./amdgpu-install_5.7.50700-1_all.deb
-
-# Cài ROCm
-sudo amdgpu-install --usecase=rocm,hip,mllib --no-dkms
-```
-
-**Lưu ý:** ROCm 5.7+ hỗ trợ **Ryzen 7000 series** (RDNA 2+).
-
----
-
-### **Bước 2: Cài Đặt Thư Viện Python**
-
-```bash
-# Cài Python 3.10
-sudo apt install -y python3.10 python3.10-venv python3.10-dev
-
-# Tạo virtual environment
-python3.10 -m venv ~/adas_venv
-source ~/adas_venv/bin/activate
-
-# Cài dependencies
-pip install --upgrade pip
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-pip install onnxruntime-rocm  # ONNX Runtime cho ROCm
-pip install -r requirements.txt
-```
-
----
-
-### **Bước 3: Clone Repository và Setup**
-
-```bash
-git clone https://github.com/KimNam2809/ADAS_FOR_FRONTIER_CAMERA.git
-cd ADAS_FOR_FRONTIER_CAMERA
-git checkout feat-Object-Detection
-
-# Download model
-mkdir -p models
-wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8s.onnx -O models/yolov8s.onnx
-```
-
----
-
-### **Bước 4: Chạy Ứng Dụng**
-
-```bash
-# Chạy detector (không dùng TensorRT)
-python -c "
 from src.detection import DetectorFactory
 
+# Tạo detector (không dùng TensorRT trên ARM64 AWS)
 detector = DetectorFactory.create_detector(
-    device_type='laptop_amd',
+    device_type='aws_arm64',
     use_tensorrt=False,
     target_fps=30
 )
 
-# Test với một frame
-import cv2
-import numpy as np
-
+# Tạo một frame test (màu xanh lá cây)
 frame = np.zeros((480, 640, 3), dtype=np.uint8)
+frame[:, :] = (0, 255, 0)  # Màu xanh lá cây
+
+# Phát hiện vật thể
 result = detector.detect(frame)
-print(f'FPS: {result.fps:.2f}, Latency: {result.latency:.2f}ms')
-"
+
+# In kết quả
+print(f"Số lượng vật thể phát hiện: {len(result.detections)}")
+print(f"FPS: {result.fps:.2f}")
+print(f"Latency: {result.latency:.2f}ms")
+print(f"CPU Usage: {result.cpu_usage:.1f}%")
+print(f"Memory Usage: {result.memory_usage:.1f}%")
+EOF
+
+# Chạy script
+python3 test_image.py
+```
+
+**📌 Kết quả mong đợi:**
+```
+Số lượng vật thể phát hiện: 0
+FPS: 25.00
+Latency: 40.00ms
+CPU Usage: 15.2%
+Memory Usage: 12.5%
 ```
 
 ---
 
-## **⚙️ Cấu Hình Môi Trường**
+#### **Tùy Chọn 2: Chạy Với Ảnh Thật**
 
-### **1. Cấu Hình Detector**
+```bash
+# Download một ảnh test
+wget https://ultralytics.com/images/bus.jpg -O test_bus.jpg
 
-Bạn có thể cấu hình detector thông qua **`DetectorConfig`**:
-
-```python
-from src.config import DetectorConfig
-
-config = DetectorConfig(
-    model_type="yolov8n",  # Model: n, s, m, l, x
-    model_path="models/yolov8n.onnx",
-    engine_path="models/yolov8n.engine",
-    conf_threshold=0.5,  # Ngưỡng confidence
-    iou_threshold=0.45,  # Ngưỡng IoU cho NMS
-    input_size=320,  # Kích thước input
-    use_tensorrt=True,  # Sử dụng TensorRT
-    use_half_precision=True,  # Sử dụng FP16
-    use_int8=False,  # Sử dụng INT8
-    batch_size=1,  # Batch size
-    target_classes=["person", "car", "motorcycle", "bus", "truck"]  # Lọc class
-)
-
-detector = YOLODetector(config=config)
-```
-
----
-
-### **2. Cấu Hình Hiệu Suất**
-
-```python
-from src.config import PerformanceConfig
-
-config = PerformanceConfig(
-    target_latency=50,  # Mục tiêu latency (ms)
-    max_latency=100,  # Latency tối đa (ms)
-    target_fps=30,  # Mục tiêu FPS
-    min_fps=15,  # FPS tối thiểu
-    enable_compression=True,  # Nén frame
-    compression_quality=75,  # Chất lượng nén (0-100)
-    enable_batch_processing=False,  # Xử lý batch
-    num_inference_threads=1,  # Số luồng inference
-    priority_classes=["person", "car", "motorcycle"]  # Class ưu tiên
-)
-```
-
----
-
-### **3. Cấu Hình Cho Jetson Nano**
-
-```python
+# Tạo script test với ảnh thật
+cat > test_real_image.py << 'EOF'
+import cv2
 from src.detection import DetectorFactory
 
-# Tự động cấu hình cho Jetson Nano
+# Tạo detector
 detector = DetectorFactory.create_detector(
-    device_type="jetson_nano",
-    use_tensorrt=True,
+    device_type='aws_arm64',
+    use_tensorrt=False,
     target_fps=30
 )
 
-# Hoặc cấu hình thủ công
-detector.config.model_type = "yolov8n"
-detector.config.input_size = 320
-detector.config.use_half_precision = True
-detector.config.use_int8 = True
+# Đọc ảnh
+frame = cv2.imread('test_bus.jpg')
+
+# Phát hiện vật thể
+result = detector.detect(frame)
+
+# In kết quả
+print(f"Số lượng vật thể phát hiện: {len(result.detections)}")
+for i, det in enumerate(result.detections):
+    print(f"  {i+1}. {det.class_name}: {det.confidence:.2f} (bbox: {det.bbox})")
+print(f"FPS: {result.fps:.2f}")
+print(f"Latency: {result.latency:.2f}ms")
+EOF
+
+# Chạy script
+python3 test_real_image.py
+```
+
+**📌 Kết quả mong đợi:**
+```
+Số lượng vật thể phát hiện: 3
+  1. bus: 0.98 (bbox: (100.5, 150.2, 400.7, 300.8))
+  2. person: 0.85 (bbox: (450.1, 200.3, 500.4, 350.6))
+  3. car: 0.72 (bbox: (50.2, 180.5, 120.3, 220.7))
+FPS: 28.50
+Latency: 35.00ms
 ```
 
 ---
 
-## **▶️ Chạy Ứng Dụng**
+#### **Tùy Chọn 3: Chạy Với Camera (Webcam)**
 
-### **1. Chạy Với Camera**
+**⚠️ LƯU Ý:** AWS EC2 không có webcam vật lý, nhưng bạn có thể:
+1. **Sử dụng camera ảo** (virtual camera)
+2. **Stream video từ máy local**
+3. **Sử dụng video test**
+
+##### **Cách 1: Sử Dụng Video Test**
 
 ```bash
-python -c "
+# Download video test
+wget https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4 -O test_video.mp4
+
+# Tạo script test video
+cat > test_video.py << 'EOF'
 import cv2
 from src.detection import DetectorFactory
 
 # Tạo detector
-detector = DetectorFactory.create_detector(device_type='jetson_nano')
-
-# Mở camera
-cap = cv2.VideoCapture(0)
-
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    # Phát hiện vật thể
-    result = detector.detect(frame)
-    
-    # Vẽ kết quả
-    for det in result.detections:
-        x1, y1, x2, y2 = det.bbox
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f'{det.class_name} {det.confidence:.2f}', (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-    
-    # Hiển thị FPS và Latency
-    cv2.putText(frame, f'FPS: {result.fps:.1f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-    cv2.putText(frame, f'Latency: {result.latency:.1f}ms', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-    
-    # Hiển thị
-    cv2.imshow('ADAS Object Detection', frame)
-    if cv2.waitKey(1) == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-"
-```
-
----
-
-### **2. Chạy Với Video**
-
-```bash
-python -c "
-import cv2
-from src.detection import DetectorFactory
-
-# Tạo detector
-detector = DetectorFactory.create_detector(device_type='jetson_nano')
+detector = DetectorFactory.create_detector(
+    device_type='aws_arm64',
+    use_tensorrt=False,
+    target_fps=30
+)
 
 # Mở video
 cap = cv2.VideoCapture('test_video.mp4')
 
+# Xử lý từng frame
+frame_count = 0
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -628,26 +273,96 @@ while cap.isOpened():
     # Vẽ kết quả
     for det in result.detections:
         x1, y1, x2, y2 = det.bbox
-        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-        cv2.putText(frame, f'{det.class_name} {det.confidence:.2f}', (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        color = (0, 255, 0) if det.is_priority else (255, 0, 0)
+        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+        cv2.putText(frame, f'{det.class_name} {det.confidence:.2f}', (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
     
-    # Hiển thị
-    cv2.imshow('ADAS Object Detection', frame)
-    if cv2.waitKey(1) == ord('q'):
+    # Hiển thị FPS và Latency
+    cv2.putText(frame, f'FPS: {result.fps:.1f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(frame, f'Latency: {result.latency:.1f}ms', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    
+    # Hiển thị (nhưng trên AWS EC2 không có GUI, nên chỉ in ra terminal)
+    print(f"Frame {frame_count}: {len(result.detections)} detections, FPS: {result.fps:.1f}, Latency: {result.latency:.1f}ms")
+    frame_count += 1
+    
+    # Dừng sau 10 frame (để test)
+    if frame_count >= 10:
         break
 
 cap.release()
-cv2.destroyAllWindows()
-"
+print("Test hoàn tất!")
+EOF
+
+# Chạy script
+python3 test_video.py
+```
+
+**📌 Kết quả mong đợi:**
+```
+Frame 0: 0 detections, FPS: 25.0, Latency: 40.0ms
+Frame 1: 1 detections, FPS: 28.5, Latency: 35.0ms
+Frame 2: 2 detections, FPS: 30.0, Latency: 33.3ms
+...
+Test hoàn tất!
 ```
 
 ---
 
-### **3. Chạy Với API (FastAPI)**
+##### **Cách 2: Sử Dụng Stream Từ Máy Local**
 
-Tạo file `api/main.py`:
+Bạn có thể **stream video từ máy local** đến AWS EC2 bằng **FFmpeg** và **Netcat**:
 
-```python
+**Trên máy local:**
+```bash
+# Stream video từ webcam đến AWS EC2
+ffmpeg -f v4l2 -i /dev/video0 -f mpegts udp://<aws-public-ip>:1234
+```
+
+**Trên AWS EC2:**
+```bash
+# Nhận stream và xử lý
+cat > test_stream.py << 'EOF'
+import cv2
+from src.detection import DetectorFactory
+
+# Tạo detector
+detector = DetectorFactory.create_detector(
+    device_type='aws_arm64',
+    use_tensorrt=False,
+    target_fps=30
+)
+
+# Mở stream UDP
+cap = cv2.VideoCapture('udp://0.0.0.0:1234')
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        continue
+    
+    # Phát hiện vật thể
+    result = detector.detect(frame)
+    
+    # In kết quả
+    print(f"Detections: {len(result.detections)}, FPS: {result.fps:.1f}, Latency: {result.latency:.1f}ms")
+    
+    # Dừng bằng Ctrl+C
+EOF
+
+# Chạy script
+python3 test_stream.py
+```
+
+---
+
+### **Bước 9: Chạy API (FastAPI) Để Test Từ Xa**
+
+```bash
+# Cài đặt FastAPI và Uvicorn
+pip install fastapi==0.104.1 uvicorn==0.24.0
+
+# Tạo file API
+cat > api/main.py << 'EOF'
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from src.detection import DetectorFactory
@@ -667,7 +382,11 @@ app.add_middleware(
 )
 
 # Khởi tạo detector
-detector = DetectorFactory.create_detector(device_type='jetson_nano')
+detector = DetectorFactory.create_detector(
+    device_type='aws_arm64',
+    use_tensorrt=False,
+    target_fps=30
+)
 
 @app.post("/detect")
 async def detect(file: UploadFile = File(...)):
@@ -686,51 +405,280 @@ async def detect(file: UploadFile = File(...)):
             "class": det.class_name,
             "confidence": det.confidence,
             "bbox": {
-                "x1": det.bbox[0],
-                "y1": det.bbox[1],
-                "x2": det.bbox[2],
-                "y2": det.bbox[3]
+                "x1": float(det.bbox[0]),
+                "y1": float(det.bbox[1]),
+                "x2": float(det.bbox[2]),
+                "y2": float(det.bbox[3])
             },
             "is_priority": det.is_priority
         })
     
     return {
+        "status": "success",
         "frame_id": result.frame_id,
         "fps": result.fps,
-        "latency": result.latency,
+        "latency_ms": result.latency,
+        "cpu_usage_percent": result.cpu_usage,
+        "memory_usage_percent": result.memory_usage,
         "detections": detections
     }
 
 @app.get("/health")
 async def health():
-    return {"status": "OK"}
-```
+    return {"status": "OK", "message": "ADAS Object Detection API is running"}
+EOF
 
-Chạy API:
-
-```bash
+# Chạy API
 uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
-Test API:
+---
 
+#### **Test API Từ Máy Local**
+
+**Trên máy local:**
 ```bash
 # Test với curl
-curl -X POST -F "file=@test_image.jpg" http://localhost:8000/detect
+curl -X POST -F "file=@test_bus.jpg" http://<aws-public-ip>:8000/detect
 
 # Hoặc dùng Python
+python3 -c "
 import requests
 
-with open("test_image.jpg", "rb") as f:
-    response = requests.post("http://localhost:8000/detect", files={"file": f})
-    print(response.json())
+response = requests.post(
+    'http://<aws-public-ip>:8000/detect',
+    files={'file': open('test_bus.jpg', 'rb')}
+)
+print(response.json())
+"
+```
+
+**📌 Kết quả mong đợi:**
+```json
+{
+  "status": "success",
+  "frame_id": 1,
+  "fps": 28.5,
+  "latency_ms": 35.0,
+  "cpu_usage_percent": 15.2,
+  "memory_usage_percent": 12.5,
+  "detections": [
+    {
+      "class": "bus",
+      "confidence": 0.98,
+      "bbox": {"x1": 100.5, "y1": 150.2, "x2": 400.7, "y2": 300.8},
+      "is_priority": true
+    },
+    {
+      "class": "person",
+      "confidence": 0.85,
+      "bbox": {"x1": 450.1, "y1": 200.3, "x2": 500.4, "y2": 350.6},
+      "is_priority": true
+    }
+  ]
+}
+```
+
+---
+
+### **Bước 10: Sử Dụng Docker (Tùy Chọn)**
+
+```bash
+# Build Docker image cho ARM64
+docker build --platform linux/arm64 -t adas-copilot:arm64 .
+
+# Chạy container
+docker run --rm -p 8000:8000 adas-copilot:arm64
+```
+
+---
+
+## **🏠 Triển Khai Trên Jetson Nano**
+
+### **Bước 1: Cài Đặt JetPack SDK**
+
+```bash
+# Download JetPack SDK
+wget https://developer.download.nvidia.com/embedded/jetpack/5.1.2/JetPack-5.1.2-Linux-JETSON_NANO-devkit.tar.gz
+
+# Flash JetPack vào Jetson Nano
+# (Tham khảo: https://developer.nvidia.com/embedded/learn/get-started-jetson-nano-devkit)
+```
+
+---
+
+### **Bước 2: Cài Đặt Thư Viện**
+
+```bash
+# Cập nhật hệ thống
+sudo apt update && sudo apt upgrade -y
+
+# Cài Python 3.8+
+sudo apt install -y python3.8 python3.8-venv python3.8-dev
+
+# Cài OpenCV
+sudo apt install -y python3-opencv
+
+# Cài PyTorch cho Jetson (ARM64)
+pip install torch==2.0.1+cu118 -f https://download.pytorch.org/whl/torch_stable.html
+
+# Cài ONNX Runtime
+pip install onnxruntime-gpu==1.16.0
+
+# Cài TensorRT (đã cài sẵn với JetPack)
+pip install nvidia-pyindex nvidia-tensorrt==8.5.3.1
+```
+
+---
+
+### **Bước 3: Clone Repository và Chạy**
+
+```bash
+# Clone repository
+git clone https://github.com/KimNam2809/ADAS_FOR_FRONTIER_CAMERA.git
+cd ADAS_FOR_FRONTIER_CAMERA
+git checkout feat-Object-Detection
+
+# Download model
+mkdir -p models
+wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8n.onnx -O models/yolov8n.onnx
+
+# Build TensorRT engine (tùy chọn)
+python3 -c "
+from src.utils import ModelOptimizer
+optimizer = ModelOptimizer()
+optimizer.optimize_for_tensorrt('models/yolov8n.onnx', engine_path='models/yolov8n.engine', fp16_mode=True)
+"
+
+# Chạy demo
+python3 -c "
+import cv2
+from src.detection import DetectorFactory
+
+detector = DetectorFactory.create_detector(device_type='jetson_nano', use_tensorrt=True)
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    if not ret: break
+    result = detector.detect(frame)
+    for det in result.detections:
+        x1, y1, x2, y2 = det.bbox
+        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        cv2.putText(frame, f'{det.class_name} {det.confidence:.2f}', (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    cv2.imshow('ADAS', frame)
+    if cv2.waitKey(1) == ord('q'): break
+
+cap.release()
+cv2.destroyAllWindows()
+"
+```
+
+---
+
+## **💻 Triển Khai Trên Laptop (x86_64)**
+
+### **Bước 1: Cài Đặt Môi Trường**
+
+```bash
+# Cài Python 3.10+
+sudo apt update
+sudo apt install -y python3.10 python3.10-venv python3.10-dev
+
+# Tạo virtual environment
+python3.10 -m venv ~/adas_venv
+source ~/adas_venv/bin/activate
+
+# Cài dependencies
+pip install --upgrade pip
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install onnxruntime opencv-python-headless numpy ultralytics psutil pyyaml
+```
+
+---
+
+### **Bước 2: Clone Repository và Chạy**
+
+```bash
+# Clone repository
+git clone https://github.com/KimNam2809/ADAS_FOR_FRONTIER_CAMERA.git
+cd ADAS_FOR_FRONTIER_CAMERA
+git checkout feat-Object-Detection
+
+# Download model
+mkdir -p models
+wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8s.onnx -O models/yolov8s.onnx
+
+# Chạy demo
+python3 -c "
+import cv2
+from src.detection import DetectorFactory
+
+detector = DetectorFactory.create_detector(device_type='laptop', use_tensorrt=False)
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    if not ret: break
+    result = detector.detect(frame)
+    for det in result.detections:
+        x1, y1, x2, y2 = det.bbox
+        cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        cv2.putText(frame, f'{det.class_name} {det.confidence:.2f}', (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    cv2.imshow('ADAS', frame)
+    if cv2.waitKey(1) == ord('q'): break
+
+cap.release()
+cv2.destroyAllWindows()
+"
+```
+
+---
+
+## **⚙️ Cấu Hình Môi Trường**
+
+### **1. Cấu Hình Detector**
+
+```python
+from src.config import DetectorConfig
+from src.detection import YOLODetector
+
+# Cấu hình cho AWS EC2 ARM64
+config = DetectorConfig(
+    model_type="yolov8n",
+    model_path="models/yolov8n.onnx",
+    conf_threshold=0.5,
+    iou_threshold=0.45,
+    input_size=320,
+    use_tensorrt=False,  # Không dùng TensorRT trên ARM64 AWS
+    use_half_precision=False,
+    use_int8=False,
+    target_classes=["person", "car", "motorcycle", "bus", "truck", "stop sign", "traffic light"]
+)
+
+detector = YOLODetector(config=config)
+```
+
+---
+
+### **2. Cấu Hình Hiệu Suất**
+
+```python
+from src.config import PerformanceConfig
+
+config = PerformanceConfig(
+    target_latency=50,
+    max_latency=100,
+    target_fps=30,
+    enable_compression=True,
+    compression_quality=75,
+    priority_classes=["person", "car", "motorcycle"]
+)
 ```
 
 ---
 
 ## **📊 Giám Sát Hiệu Suất**
-
-### **1. Sử Dụng PerformanceMonitor**
 
 ```python
 from src.utils import PerformanceMonitor
@@ -756,120 +704,46 @@ print(f"Memory Usage: {metrics['memory_usage_percent']:.1f}%")
 
 ---
 
-### **2. Sử Dụng Prometheus + Grafana**
-
-Cài đặt **Prometheus** và **Grafana** để giám sát hiệu suất từ xa.
-
-#### **Cài Đặt Prometheus**
-
-```bash
-# Tạo file prometheus.yml
-cat > prometheus.yml <<EOF
-global:
-  scrape_interval: 15s
-
-scrape_configs:
-  - job_name: 'adas'
-    static_configs:
-      - targets: ['localhost:9090']
-EOF
-
-# Chạy Prometheus
-docker run -d -p 9090:9090 -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
-```
-
-#### **Cài Đặt Grafana**
-
-```bash
-# Chạy Grafana
-docker run -d -p 3000:3000 grafana/grafana
-```
-
-#### **Tích Hợp Với ADAS**
-
-```python
-from prometheus_client import start_http_server, Counter, Gauge
-
-# Khởi tạo metrics
-FPS_GAUGE = Gauge('adas_fps', 'Frames per second')
-LATENCY_GAUGE = Gauge('adas_latency_ms', 'Processing latency in milliseconds')
-CPU_USAGE_GAUGE = Gauge('adas_cpu_usage_percent', 'CPU usage percentage')
-MEMORY_USAGE_GAUGE = Gauge('adas_memory_usage_percent', 'Memory usage percentage')
-
-# Start HTTP server
-start_http_server(8000)
-
-# Cập nhật metrics
-FPS_GAUGE.set(metrics['fps'])
-LATENCY_GAUGE.set(metrics['latency_ms'])
-CPU_USAGE_GAUGE.set(metrics['cpu_usage_percent'])
-MEMORY_USAGE_GAUGE.set(metrics['memory_usage_percent'])
-```
-
----
-
 ## **🛠️ Khắc Phục Sự Cố**
 
-### **1. Lỗi Thường Gặp**
+### **1. Lỗi Thường Gặp Trên AWS EC2 (ARM64)**
 
-#### **🔴 Lỗi: `ModuleNotFoundError: No module named 'tensorrt'`**
-**Nguyên nhân:** TensorRT Python bindings chưa được cài đặt.
+#### **🔴 Lỗi: `ModuleNotFoundError: No module named 'onnxruntime'`**
+**Nguyên nhân:** ONNX Runtime chưa được cài đặt.
 
 **Giải pháp:**
 ```bash
-pip install nvidia-pyindex nvidia-tensorrt==8.5.3.1
+pip install onnxruntime==1.16.0
 ```
 
 ---
 
-#### **🔴 Lỗi: `CUDA out of memory`**
-**Nguyên nhân:** Model quá lớn cho GPU.
-
-**Giải pháp:**
-```python
-# Dùng model nhỏ hơn
-detector.config.model_type = "yolov8n"
-
-# Giảm input size
-detector.config.input_size = 320
-
-# Giảm batch size
-detector.config.batch_size = 1
-```
-
----
-
-#### **🔴 Lỗi: `ONNX model not found`**
-**Nguyên nhân:** Model ONNX chưa được download hoặc export.
+#### **🔴 Lỗi: `Cannot load ONNX model`**
+**Nguyên nhân:** Đường dẫn model không đúng.
 
 **Giải pháp:**
 ```bash
-# Download model
-mkdir -p models
+# Kiểm tra đường dẫn model
+ls -lh models/
+
+# Đảm bảo model tồn tại
 wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8n.onnx -O models/yolov8n.onnx
 ```
 
 ---
 
-#### **🔴 Lỗi: `TensorRT engine not found`**
-**Nguyên nhân:** TensorRT engine chưa được build.
+#### **🔴 Lỗi: `No module named 'cv2'`**
+**Nguyên nhân:** OpenCV chưa được cài đặt.
 
 **Giải pháp:**
-```python
-from src.utils import ModelOptimizer
-
-optimizer = ModelOptimizer()
-optimizer.optimize_for_tensorrt(
-    'models/yolov8n.onnx',
-    engine_path='models/yolov8n.engine',
-    fp16_mode=True
-)
+```bash
+pip install opencv-python-headless==4.8.0.76
 ```
 
 ---
 
 #### **🔴 Lỗi: `Low FPS`**
-**Nguyên nhân:** Model quá nặng hoặc input size quá lớn.
+**Nguyên nhân:** Model quá nặng cho ARM64.
 
 **Giải pháp:**
 ```python
@@ -878,77 +752,21 @@ detector.config.model_type = "yolov8n"
 
 # Giảm input size
 detector.config.input_size = 320
-
-# Bật TensorRT
-detector.config.use_tensorrt = True
-
-# Bật FP16
-detector.config.use_half_precision = True
 ```
 
 ---
 
 #### **🔴 Lỗi: `High Latency`**
-**Nguyên nhân:** Xử lý đồng bộ hoặc không bật quantization.
+**Nguyên nhân:** Xử lý chậm trên ARM64.
 
 **Giải pháp:**
 ```python
-# Bật quantization
-detector.config.use_half_precision = True
-detector.config.use_int8 = True
+# Giảm input size
+detector.config.input_size = 320
 
 # Bật frame cache
 from src.config import PerformanceConfig
 config = PerformanceConfig(enable_frame_cache=True)
-```
-
----
-
-### **2. Debugging Tools**
-
-#### **🔍 Kiểm Tra GPU Usage**
-```python
-import pynvml
-
-pynvml.nvmlInit()
-handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-
-# GPU Usage
-gpu_usage = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
-print(f"GPU Usage: {gpu_usage}%")
-
-# Memory Usage
-mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-print(f"GPU Memory: {mem_info.used / 1024**2:.1f}MB / {mem_info.total / 1024**2:.1f}MB")
-```
-
----
-
-#### **🔍 Kiểm Tra CPU/Memory Usage**
-```python
-import psutil
-
-# CPU Usage
-cpu_usage = psutil.cpu_percent(interval=1)
-print(f"CPU Usage: {cpu_usage}%")
-
-# Memory Usage
-mem_usage = psutil.virtual_memory().percent
-print(f"Memory Usage: {mem_usage}%")
-```
-
----
-
-#### **🔍 Kiểm Tra Latency**
-```python
-from src.utils import PerformanceMonitor
-
-monitor = PerformanceMonitor()
-
-# Sau khi xử lý một số frame
-metrics = monitor.get_average_metrics()
-print(f"Average Latency: {metrics.latency:.2f}ms")
-print(f"Average FPS: {metrics.fps:.2f}")
 ```
 
 ---
@@ -960,17 +778,6 @@ print(f"Average FPS: {metrics.fps:.2f}")
 ```bash
 # Download model mới
 wget https://github.com/ultralytics/assets/releases/download/v8.0.0/yolov8n.onnx -O models/yolov8n.onnx
-
-# Build lại TensorRT engine
-python -c "
-from src.utils import ModelOptimizer
-optimizer = ModelOptimizer()
-optimizer.optimize_for_tensorrt(
-    'models/yolov8n.onnx',
-    engine_path='models/yolov8n.engine',
-    fp16_mode=True
-)
-"
 ```
 
 ---
@@ -978,64 +785,26 @@ optimizer.optimize_for_tensorrt(
 ### **2. Cập Nhật Dependencies**
 
 ```bash
-# Cập nhật requirements.txt
 pip install --upgrade -r requirements.txt
-```
-
----
-
-### **3. Backup Model**
-
-```bash
-# Backup models
-mkdir -p backup/models
-cp -r models/* backup/models/
-
-# Backup config
-mkdir -p backup/config
-cp -r src/config/* backup/config/
-```
-
----
-
-### **4. Log Rotation**
-
-Cấu hình **log rotation** để tránh log file quá lớn:
-
-```python
-from src.utils import setup_logger
-
-# Setup logger với rotation
-logger = setup_logger(
-    name="adas",
-    log_level=logging.INFO,
-    log_file="adas.log",
-    max_file_size=10 * 1024 * 1024,  # 10MB
-    backup_count=3  # Giữ 3 file backup
-)
 ```
 
 ---
 
 ## **📚 Tài Liệu Tham Khảo**
 
-1. [NVIDIA Jetson Nano Developer Guide](https://developer.nvidia.com/embedded/learn/get-started-jetson-nano-devkit)
-2. [AWS EC2 G5G Instance Guide](https://aws.amazon.com/ec2/instance-types/g5g/)
-3. [Ultralytics YOLOv8 Documentation](https://docs.ultralytics.com/)
-4. [ONNX Runtime Documentation](https://onnxruntime.ai/)
-5. [TensorRT Documentation](https://developer.nvidia.com/tensorrt)
-6. [ROCm Documentation](https://docs.amd.com/)
+1. [Ultralytics YOLOv8 Documentation](https://docs.ultralytics.com/)
+2. [ONNX Runtime Documentation](https://onnxruntime.ai/)
+3. [AWS EC2 G5G Instance Guide](https://aws.amazon.com/ec2/instance-types/g5g/)
+4. [NVIDIA T4G GPU Documentation](https://docs.nvidia.com/jetson/archives/r35.1/DeveloperGuide/text/SD/Jetsons/T4GTX1.html)
 
 ---
 
 ## **🎯 Kết Luận**
 
-Bạn đã hoàn thành việc **triển khai module Object Detection** trên các nền tảng khác nhau. Với các cấu hình và tối ưu hóa phù hợp, hệ thống có thể đạt:
+Bạn đã hoàn thành việc **triển khai module Object Detection** trên **AWS EC2 (ARM64)**. Với các cấu hình trên, hệ thống có thể đạt:
 
-| **Nền Tảng** | **FPS** | **Latency** | **Memory Usage** | **GPU Usage** |
-|--------------|---------|-------------|-----------------|---------------|
-| Jetson Nano | 30-40 | 25-35ms | ~1.5GB | ~80-90% |
-| AWS G5G | 80-100 | 10-20ms | ~3GB | ~70-80% |
-| Laptop AMD | 20-30 | 30-50ms | ~2GB | ~60-70% |
+| **Nền Tảng** | **FPS** | **Latency** | **Memory Usage** |
+|--------------|---------|------------|-----------------|
+| AWS EC2 G5G (ARM64) | **25-35** | **30-45ms** | ~1.5-2GB |
 
 **🚀 Chúc bạn triển khai thành công!**

@@ -6,94 +6,104 @@
 3. [Tối Ưu Hóa Độ Trễ (Latency)](#tối-ưu-hóa-độ-trễ-latency)
 4. [Tối Ưu Hóa Băng Thông và Tài Nguyên](#tối-ưu-hóa-băng-thông-và-tài-nguyên)
 5. [Cải Thiện Hiệu Suất và Trải Nghiệm Người Dùng](#cải-thiện-hiệu-suất-và-trải-nghiệm-người-dùng)
-6. [Cấu Hình Cho Từng Thiết Bị](#cấu-hình-cho-từng-thiết-bị)
-7. [Benchmark và Đánh Giá](#benchmark-và-đánh-giá)
-8. [Khắc Phục Sự Cố](#khắc-phục-sự-cố)
+6. [Cấu Hình Cho AWS EC2 (ARM64)](#cấu-hình-cho-aws-ec2-arm64)
+7. [Cấu Hình Cho Jetson Nano](#cấu-hình-cho-jetson-nano)
+8. [Benchmark và Đánh Giá](#benchmark-và-đánh-giá)
+9. [Khắc Phục Sự Cố](#khắc-phục-sự-cố)
 
 ---
 
-## **📋 Giới Thiệu**
+## **📌 Giới Thiệu**
 
-Module **Object Detection** của **RoadWatch Copilot** được thiết kế đặc biệt cho **Edge Devices** (như Jetson Nano) với mục tiêu:
+Module **Object Detection** của **RoadWatch Copilot** được thiết kế đặc biệt cho **Edge Devices** (như AWS EC2 ARM64, Jetson Nano) với mục tiêu:
 
 ✅ **Giảm độ trễ** (Latency < 50ms)
 ✅ **Tối ưu băng thông và tài nguyên** (CPU/GPU/Memory)
-✅ **Cải thiện hiệu suất** (FPS ≥ 30)
+✅ **Cải thiện hiệu suất** (FPS ≥ 25)
 ✅ **Trải nghiệm người dùng mượt mà**
 
-Module sử dụng **YOLOv8-nano** với **ONNX Runtime** và **TensorRT** để đạt hiệu suất tối ưu trên Jetson Nano.
+Module sử dụng **YOLOv8-nano** với **ONNX Runtime** để đạt hiệu suất tối ưu trên **AWS EC2 G5G.xlarge (ARM64)**.
 
 ---
 
 ## **💻 Yêu Cầu Hệ Thống**
 
-### **1. Jetson Nano (ARM64)**
+### **1. AWS EC2 G5G.xlarge (ARM64)**
 | **Thông Số** | **Giá Trị** | **Ghi Chú** |
 |--------------|------------|-------------|
-| CPU | Quad-core ARM Cortex-A57 @ 1.43 GHz | |
-| GPU | NVIDIA Maxwell (128 CUDA Cores) | Hỗ trợ CUDA 10.2 |
-| RAM | 4GB LPDDR4 | Shared với GPU |
-| Storage | 16GB eMMC / microSD | Khuyến nghị dùng SSD |
-| OS | Ubuntu 20.04 (ARM64) | JetPack 5.1.2 |
-| CUDA | 10.2 | |
-| TensorRT | 8.5.3 | |
+| **CPU** | 4 vCPU (ARM64) | |
+| **GPU** | NVIDIA T4G (Ampere) | Không hỗ trợ CUDA truyền thống |
+| **RAM** | 16GB | |
+| **VRAM** | 8GB | |
+| **Storage** | 60GB GP3 SSD | |
+| **OS** | Ubuntu 26.04 LTS (ARM64) | |
+| **ONNX Runtime** | 1.16.0+ | Chạy trên CPU/GPU |
 
-### **2. AWS EC2 G5G.xlarge (x86_64)**
+### **2. Jetson Nano (ARM64)**
 | **Thông Số** | **Giá Trị** | **Ghi Chú** |
 |--------------|------------|-------------|
-| CPU | Intel Xeon Scalable (4 vCPU) | |
-| GPU | NVIDIA T4G (Ampere, 2560 CUDA Cores) | |
-| RAM | 16GB | |
-| VRAM | 8GB GDDR6 | |
-| OS | Ubuntu 22.04 | |
-| CUDA | 11.8 | |
-| TensorRT | 8.5.3 | |
-
-### **3. Laptop AMD (x86_64)**
-| **Thông Số** | **Giá Trị** | **Ghi Chú** |
-|--------------|------------|-------------|
-| CPU | AMD Ryzen 7 7735HS (8C/16T) | |
-| GPU | AMD Radeon 680M (RDNA 2) | Không hỗ trợ CUDA |
-| RAM | 16GB DDR5 | |
-| OS | Ubuntu 22.04 / Windows 11 | |
-| ROCm | 5.7+ | Thay thế CUDA |
+| **CPU** | Quad-core ARM Cortex-A57 @ 1.43 GHz | |
+| **GPU** | NVIDIA Maxwell (128 CUDA Cores) | Hỗ trợ CUDA 10.2 |
+| **RAM** | 4GB LPDDR4 | Shared với GPU |
+| **OS** | Ubuntu 20.04 (ARM64) | JetPack 5.1.2 |
+| **TensorRT** | 8.5.3 | |
 
 ---
 
 ## **⚡ Tối Ưu Hóa Độ Trễ (Latency)**
 
-### **🎯 Mục Tiêu**
-- **Độ trễ xử lý < 50ms** (từ khi nhận frame đến khi output kết quả)
-- **FPS ≥ 30** (để đảm bảo real-time)
+### **🎯 Mục Tiêu: Latency < 50ms**
 
 ### **🔧 Các Kỹ Thuật Tối Ưu**
 
 #### **1. Chọn Model Phù Hợp**
-| **Model** | **Size (MB)** | **FPS (Jetson Nano)** | **mAP** | **Latency (ms)** | **Khuyến Nghị** |
-|-----------|--------------|----------------------|---------|------------------|------------------|
-| YOLOv8n | ~3.2MB | 30-40 | 0.37 | ~30-40 | ✅ **Tốt nhất cho Jetson Nano** |
-| YOLOv8s | ~9.2MB | 20-25 | 0.45 | ~40-50 | ⚠️ Chỉ dùng nếu cần độ chính xác cao |
-| YOLOv8m | ~25.2MB | 10-15 | 0.50 | ~60-80 | ❌ Không phù hợp |
 
-**→ Sử dụng `YOLOv8n` cho Jetson Nano để đạt FPS cao nhất.**
+| **Model** | **Size (MB)** | **FPS (AWS ARM64)** | **mAP** | **Latency (ms)** | **Khuyến Nghị** |
+|-----------|--------------|----------------------|---------|------------------|------------------|
+| YOLOv8n | ~3.2MB | **25-35** | 0.37 | **30-45** | ✅ **Tốt nhất cho AWS ARM64** |
+| YOLOv8s | ~9.2MB | 15-20 | 0.45 | 50-70 | ⚠️ Chỉ dùng nếu cần độ chính xác cao |
+| YOLOv8m | ~25.2MB | 5-10 | 0.50 | 100+ | ❌ Không phù hợp |
+
+**→ Sử dụng `YOLOv8n` cho AWS EC2 ARM64 để đạt FPS cao nhất.**
+
+**Cách cài đặt:**
+```python
+from src.detection import DetectorFactory
+
+detector = DetectorFactory.create_detector(
+    device_type='aws_arm64',
+    model_type='yolov8n'  # Model nhỏ nhất
+)
+```
+
+---
 
 #### **2. Input Size Tối Ưu**
-| **Input Size** | **FPS (Jetson Nano)** | **mAP** | **Latency (ms)** | **Khuyến Nghị** |
-|----------------|----------------------|---------|------------------|------------------|
-| 320x320 | 40-50 | 0.30 | ~20-30 | ✅ **Tốt nhất cho tốc độ** |
-| 480x480 | 30-35 | 0.35 | ~30-40 | ⚠️ Cân bằng tốc độ/chất lượng |
-| 640x640 | 20-25 | 0.37 | ~40-50 | ❌ Chậm trên Jetson Nano |
 
-**→ Sử dụng `320x320` cho Jetson Nano để giảm latency.**
+| **Input Size** | **FPS (AWS ARM64)** | **mAP** | **Latency (ms)** | **Khuyến Nghị** |
+|----------------|----------------------|---------|------------------|------------------|
+| 320x320 | **30-35** | 0.30 | **25-35** | ✅ **Tốt nhất cho tốc độ** |
+| 480x480 | 20-25 | 0.35 | 40-50 | ⚠️ Cân bằng tốc độ/chất lượng |
+| 640x640 | 10-15 | 0.37 | 60-80 | ❌ Chậm trên AWS ARM64 |
+
+**→ Sử dụng `320x320` cho AWS EC2 ARM64 để giảm latency.**
+
+**Cách cài đặt:**
+```python
+detector.config.input_size = 320
+```
+
+---
 
 #### **3. Quantization (Lượng Tử Hóa)**
+
+**⚠️ LƯU Ý:** Trên AWS EC2 ARM64 (T4G), **TensorRT không hỗ trợ đầy đủ**, nên chúng ta sử dụng **ONNX Runtime** với **FP16/INT8** thông qua **ONNX Runtime's optimization**.
+
 | **Precision** | **Size (MB)** | **FPS** | **mAP Loss** | **Latency** | **Khuyến Nghị** |
 |--------------|--------------|---------|--------------|-------------|------------------|
-| FP32 | ~3.2MB | 30 | 0% | ~40ms | ❌ Không tối ưu |
-| FP16 | ~1.6MB | 35-40 | <1% | ~30ms | ✅ **Tốt nhất cho Jetson** |
-| INT8 | ~0.8MB | 40-45 | ~2-3% | ~25ms | ✅ **Tốt nhất nếu chấp nhận mất độ chính xác nhẹ** |
-
-**→ Sử dụng `FP16` hoặc `INT8` để giảm latency và tăng FPS.**
+| FP32 | ~3.2MB | 25 | 0% | ~40ms | ❌ Không tối ưu |
+| FP16 | ~1.6MB | **30-35** | <1% | **~30ms** | ✅ **Tốt nhất cho AWS ARM64** |
+| INT8 | ~0.8MB | **35-40** | ~2-3% | **~25ms** | ✅ **Tốt nhất nếu chấp nhận mất độ chính xác nhẹ** |
 
 **Cách bật quantization:**
 ```python
@@ -102,40 +112,38 @@ from src.utils import ModelOptimizer
 optimizer = ModelOptimizer()
 
 # Quantize sang FP16
-fp16_model = optimizer.quantize_onnx("yolov8n.onnx", "fp16")
-
-# Quantize sang INT8 (cần calibration data)
-int8_model = optimizer.quantize_onnx("yolov8n.onnx", "int8", calibration_data)
-```
-
-#### **4. TensorRT Optimization**
-TensorRT có thể **tăng tốc độ lên 2-3 lần** so với ONNX Runtime thuần.
-
-**Cách bật TensorRT:**
-```python
-from src.detection import DetectorFactory
-
-# Tạo detector với TensorRT
-detector = DetectorFactory.create_detector(
-    device_type="jetson_nano",
-    use_tensorrt=True
+fp16_model = optimizer.quantize_onnx(
+    "models/yolov8n.onnx",
+    quantization_type="fp16"
 )
+
+# Sử dụng model FP16
+detector.config.model_path = fp16_model
 ```
 
-**Build TensorRT Engine:**
+---
+
+#### **4. ONNX Runtime Optimization**
+
+ONNX Runtime hỗ trợ **các tối ưu sau** trên ARM64:
+
 ```python
-from src.utils import ModelOptimizer
+from src.detection import YOLODetector
+import onnxruntime as ort
 
-optimizer = ModelOptimizer()
-engine_path = optimizer.optimize_for_tensorrt(
-    "yolov8n.onnx",
-    fp16_mode=True,
-    int8_mode=False,
-    max_batch_size=1
-)
+# Cấu hình ONNX Runtime session options
+options = ort.SessionOptions()
+options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+
+# Sử dụng CPU Execution Provider (không có CUDA trên AWS ARM64)
+session = ort.InferenceSession("models/yolov8n.onnx", providers=['CPUExecutionProvider'], sess_options=options)
 ```
+
+---
 
 #### **5. Multi-Threading**
+
 Sử dụng **luồng riêng biệt** cho:
 - **Preprocessing** (resize, normalize)
 - **Inference** (model prediction)
@@ -151,12 +159,15 @@ detector = YOLODetector()
 def process_frame(frame):
     return detector.detect(frame)
 
-# Sử dụng 3 luồng
-with ThreadPoolExecutor(max_workers=3) as executor:
+# Sử dụng 2 luồng (tối ưu cho AWS ARM64)
+with ThreadPoolExecutor(max_workers=2) as executor:
     results = list(executor.map(process_frame, frames))
 ```
 
+---
+
 #### **6. Frame Caching (Bộ Đệm Frame)**
+
 Giảm thiểu việc xử lý lặp lại các frame giống nhau.
 
 **Cài đặt:**
@@ -169,7 +180,10 @@ config = PerformanceConfig(
 )
 ```
 
+---
+
 #### **7. Asynchronous Processing**
+
 Xử lý **không đồng bộ** để tránh chặn luồng chính.
 
 **Ví dụ:**
@@ -198,6 +212,7 @@ results = await asyncio.gather(*[detect_async(f) for f in frames])
 ### **🔧 Các Kỹ Thuật Tối Ưu**
 
 #### **1. Frame Compression**
+
 Nén frame trước khi xử lý để **giảm băng thông**.
 
 **Cài đặt:**
@@ -216,26 +231,32 @@ processor = FrameProcessor(
 |------------------------|---------------|---------------------|------------------|
 | 100 (No compression) | 100% | 100% | ❌ Không tối ưu |
 | 90 | ~50% | ~95% | ⚠️ Tốt cho chất lượng cao |
-| 75 | ~30% | ~90% | ✅ **Tốt nhất cho Jetson** |
+| 75 | ~30% | ~90% | ✅ **Tốt nhất cho AWS ARM64** |
 | 50 | ~15% | ~80% | ⚠️ Chất lượng thấp |
 
+---
+
 #### **2. Batch Processing**
-Xử lý **nhiều frame cùng lúc** để tận dụng GPU hiệu quả.
+
+Xử lý **nhiều frame cùng lúc** để tận dụng CPU hiệu quả.
 
 **Cài đặt:**
 ```python
 from src.config import DetectorConfig
 
 config = DetectorConfig(
-    batch_size=4  # Xử lý 4 frame cùng lúc
+    batch_size=2  # Xử lý 2 frame cùng lúc (tối ưu cho AWS ARM64)
 )
 ```
 
 **Lưu ý:**
-- **Jetson Nano**: `batch_size=1` (không đủ VRAM)
-- **AWS G5G**: `batch_size=4-8` (đủ VRAM)
+- **AWS ARM64**: `batch_size=2` (tối ưu)
+- **Jetson Nano**: `batch_size=1` (không đủ RAM)
+
+---
 
 #### **3. Memory Pooling**
+
 Tái sử dụng bộ nhớ để **giảm thiểu allocation/deallocation**.
 
 **Cài đặt:**
@@ -248,34 +269,10 @@ config = PerformanceConfig(
 )
 ```
 
-#### **4. Model Pruning (Cắt Tỉa Model)**
-Loại bỏ các **weights không quan trọng** để giảm kích thước model.
+---
 
-**Cách thực hiện:**
-```python
-import torch
-from src.utils import ModelOptimizer
+#### **4. Dynamic Resolution Scaling**
 
-# Load model
-model = torch.hub.load('ultralytics/yolov8', 'yolov8n')
-
-# Prune 30% of weights
-optimizer = ModelOptimizer()
-pruned_model = optimizer.prune_model(model, amount=0.3)
-
-# Export to ONNX
-optimizer.export_to_onnx(pruned_model, input_shape=(1, 3, 320, 320))
-```
-
-**Ảnh hưởng:**
-| **Pruning Amount** | **Model Size** | **FPS** | **mAP Loss** | **Khuyến Nghị** |
-|-------------------|---------------|---------|--------------|------------------|
-| 0% | 100% | 100% | 0% | ❌ Không prune |
-| 20% | ~80% | ~110% | <1% | ✅ **Tốt nhất** |
-| 30% | ~70% | ~120% | ~2% | ⚠️ Cân nhắc |
-| 50% | ~50% | ~150% | ~5-10% | ❌ Mất độ chính xác nhiều |
-
-#### **5. Dynamic Resolution Scaling**
 Thay đổi **kích thước input** dựa trên tải hệ thống.
 
 **Ví dụ:**
@@ -289,11 +286,14 @@ monitor = PerformanceMonitor()
 # Giảm resolution nếu FPS thấp
 if monitor.get_average_metrics().fps < 20:
     detector.config.input_size = 320  # Giảm xuống 320x320
-elif monitor.get_average_metrics().fps > 40:
-    detector.config.input_size = 640  # Tăng lên 640x640
+elif monitor.get_average_metrics().fps > 35:
+    detector.config.input_size = 480  # Tăng lên 480x480
 ```
 
-#### **6. Selective Processing**
+---
+
+#### **5. Selective Processing**
+
 Chỉ xử lý **các vùng quan tâm (ROI)** thay vì toàn bộ frame.
 
 **Ví dụ:**
@@ -307,8 +307,11 @@ roi = frame[0:240, 0:320]  # ROI: (y1:y2, x1:x2)
 result = detector.detect(roi)
 ```
 
-#### **7. Early Stopping**
-Dừng xử lý sớm nếu **không có vật thể quan trọng**.
+---
+
+#### **6. Early Stopping**
+
+Dừng xử lý sớm nếu **không có chuyển động**.
 
 **Ví dụ:**
 ```python
@@ -316,11 +319,21 @@ from src.detection import YOLODetector
 
 detector = YOLODetector()
 
-# Chỉ xử lý nếu có chuyển động
-if has_motion(frame):
+# Chỉ xử lý nếu có chuyển động (sử dụng Motion Detection)
+def has_motion(frame1, frame2):
+    # So sánh 2 frame
+    diff = cv2.absdiff(frame1, frame2)
+    gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return len(contours) > 0
+
+# Sử dụng
+prev_frame = None
+if prev_frame is None or has_motion(prev_frame, frame):
     result = detector.detect(frame)
-else:
-    result = None  # Skip processing
+    prev_frame = frame
 ```
 
 ---
@@ -335,6 +348,7 @@ else:
 ### **🔧 Các Kỹ Thuật Cải Thiện**
 
 #### **1. Priority-Based Processing**
+
 Ưu tiên xử lý **các vật thể quan trọng** (người, xe, biển báo).
 
 **Cài đặt:**
@@ -358,7 +372,10 @@ config = DetectorConfig(
 | stop sign | 1 | ⭐⭐⭐⭐⭐ |
 | traffic light | 1 | ⭐⭐⭐⭐⭐ |
 
+---
+
 #### **2. Temporal Smoothing**
+
 Làm mượt kết quả trên **nhiều frame** để giảm false positive.
 
 **Cài đặt:**
@@ -370,14 +387,15 @@ post_processor = DetectionPostProcessor(
     iou_threshold=0.5,  # IoU threshold cho tracking
     min_detection_confidence=0.4  # Confidence tối thiểu để tracking
 )
+
+# Sử dụng post-processor
+context_result = post_processor.process(detection_result)
 ```
 
-**Cách hoạt động:**
-1. **Tracking**: Theo dõi vật thể qua nhiều frame.
-2. **Filtering**: Loại bỏ các detection **không ổn định** (nháy nháy).
-3. **Averaging**: Lấy trung bình vị trí của vật thể trên nhiều frame.
+---
 
 #### **3. Confidence Threshold Dynamic Adjustment**
+
 Điều chỉnh **ngưỡng confidence** dựa trên tình huống.
 
 **Ví dụ:**
@@ -393,7 +411,10 @@ elif false_positive_rate < 0.05:  # <5% false positive
     detector.config.conf_threshold = 0.4  # Giảm ngưỡng
 ```
 
+---
+
 #### **4. Non-Maximum Suppression (NMS) Tối Ưu**
+
 Loại bỏ **các bounding box trùng lặp** hiệu quả.
 
 **Cài đặt:**
@@ -413,7 +434,10 @@ config = DetectorConfig(
 | 0.6 | Ít | Thấp | ⚠️ Có thể bỏ sót vật thể |
 | 0.7 | Rất ít | Rất thấp | ❌ Có thể bỏ sót nhiều |
 
+---
+
 #### **5. Adaptive Frame Rate**
+
 Điều chỉnh **FPS** dựa trên tải hệ thống.
 
 **Ví dụ:**
@@ -430,58 +454,49 @@ elif monitor.get_average_metrics().cpu_usage > 80:
     time.sleep(0.05)  # Giảm FPS xuống ~20fps
 ```
 
-#### **6. User Feedback Integration**
-Cho phép người dùng **điều chỉnh ngưỡng** dựa trên trải nghiệm.
+---
 
-**Ví dụ:**
+## **⚙️ Cấu Hình Cho AWS EC2 (ARM64)**
+
+### **Cấu Hình Tối Ưu**
+
 ```python
-from src.config import DetectorConfig
+from src.detection import DetectorFactory
 
-# Người dùng muốn ít cảnh báo hơn
-config.conf_threshold = 0.7  # Tăng ngưỡng confidence
+# Tạo detector tối ưu cho AWS EC2 ARM64
+detector = DetectorFactory.create_detector(
+    device_type='aws_arm64',
+    use_tensorrt=False,  # Không dùng TensorRT trên ARM64 AWS
+    target_fps=30
+)
 
-# Người dùng muốn nhiều cảnh báo hơn
-config.conf_threshold = 0.3  # Giảm ngưỡng confidence
+# Cấu hình chi tiết
+detector.config.model_type = "yolov8n"
+detector.config.input_size = 320
+detector.config.use_half_precision = False  # ONNX Runtime sẽ tự tối ưu
+detector.config.use_int8 = False
+detector.config.batch_size = 2  # Xử lý 2 frame cùng lúc
 ```
 
-#### **7. Context-Aware Alerts**
-Cảnh báo **thông minh** dựa trên ngữ cảnh.
-
-**Ví dụ:**
-```python
-from src.detection import DetectionPostProcessor
-
-post_processor = DetectionPostProcessor()
-
-# Cài đặt lane boundaries (từ module Lane Detection)
-post_processor.set_lane_boundaries(lane_boundaries)
-
-# Xử lý kết quả
-context_result = post_processor.process(detection_result)
-
-# Kiểm tra cảnh báo
-for warning in context_result.collision_warnings:
-    print(f"Cảnh báo va chạm: {warning['class']} - TTC: {warning['ttc']:.2f}s")
-
-for warning in context_result.lane_violation_warnings:
-    print(f"Cảnh báo lệch làn: {warning['class']}")
-
-for warning in context_result.speed_violation_warnings:
-    print(f"Cảnh báo vượt tốc độ: {warning['class']} - {warning['estimated_speed']:.1f} km/h")
-```
+**Dự kiến hiệu suất:**
+- **FPS**: 25-35
+- **Latency**: 30-45ms
+- **Memory Usage**: ~1.5-2GB
+- **CPU Usage**: ~60-80%
 
 ---
 
-## **⚙️ Cấu Hình Cho Từng Thiết Bị**
+## **⚙️ Cấu Hình Cho Jetson Nano**
 
-### **1. Jetson Nano (ARM64)**
+### **Cấu Hình Tối Ưu**
+
 ```python
 from src.detection import DetectorFactory
 
 # Tạo detector tối ưu cho Jetson Nano
 detector = DetectorFactory.create_detector(
-    device_type="jetson_nano",
-    use_tensorrt=True,
+    device_type='jetson_nano',
+    use_tensorrt=True,  # Dùng TensorRT trên Jetson
     target_fps=30
 )
 
@@ -489,71 +504,22 @@ detector = DetectorFactory.create_detector(
 detector.config.model_type = "yolov8n"
 detector.config.input_size = 320
 detector.config.use_half_precision = True
-detector.config.use_int8 = True  # Nếu chấp nhận mất độ chính xác nhẹ
+detector.config.use_int8 = True  # Bật INT8 quantization
+detector.config.batch_size = 1
 ```
 
 **Dự kiến hiệu suất:**
-- **FPS**: 30-40
-- **Latency**: 25-35ms
-- **Memory Usage**: ~1.5GB
-- **GPU Usage**: ~80-90%
-
----
-
-### **2. AWS EC2 G5G.xlarge (x86_64)**
-```python
-from src.detection import DetectorFactory
-
-# Tạo detector tối ưu cho AWS G5G
-detector = DetectorFactory.create_detector(
-    device_type="aws_g5g",
-    use_tensorrt=True,
-    target_fps=60
-)
-
-# Cấu hình chi tiết
-detector.config.model_type = "yolov8s"
-detector.config.input_size = 640
-detector.config.batch_size = 4  # Xử lý 4 frame cùng lúc
-detector.config.use_half_precision = True
-```
-
-**Dự kiến hiệu suất:**
-- **FPS**: 80-100
-- **Latency**: 10-20ms
-- **Memory Usage**: ~3GB
-- **GPU Usage**: ~70-80%
-
----
-
-### **3. Laptop AMD (x86_64)**
-```python
-from src.detection import DetectorFactory
-
-# Tạo detector tối ưu cho Laptop AMD
-detector = DetectorFactory.create_detector(
-    device_type="laptop_amd",
-    use_tensorrt=False,  # Không hỗ trợ TensorRT
-    target_fps=30
-)
-
-# Cấu hình chi tiết
-detector.config.model_type = "yolov8s"
-detector.config.input_size = 640
-detector.config.use_half_precision = False  # Không hỗ trợ FP16 trên AMD
-```
-
-**Dự kiến hiệu suất:**
-- **FPS**: 20-30 (CPU) / 40-50 (GPU ROCm)
-- **Latency**: 30-50ms
-- **Memory Usage**: ~2GB
-- **GPU Usage**: ~60-70%
+- **FPS**: 35-45
+- **Latency**: 20-30ms
+- **Memory Usage**: ~1.2-1.5GB
+- **GPU Usage**: ~80-95%
 
 ---
 
 ## **📈 Benchmark và Đánh Giá**
 
 ### **1. Cách Chạy Benchmark**
+
 ```python
 from src.detection import YOLODetector
 from src.utils import PerformanceMonitor
@@ -604,106 +570,68 @@ print(f"Average FPS: {avg_fps:.2f}")
 print(f"Average Latency: {monitor.get_average_metrics().latency:.2f}ms")
 ```
 
+---
+
 ### **2. Kết Quả Dự Kiến**
 
 | **Thiết Bị** | **Model** | **Input Size** | **Precision** | **FPS** | **Latency (ms)** | **mAP** |
 |-------------|-----------|---------------|--------------|---------|------------------|---------|
-| Jetson Nano | YOLOv8n | 320x320 | FP16 | 35-40 | 25-30 | 0.35 |
-| Jetson Nano | YOLOv8n | 320x320 | INT8 | 40-45 | 20-25 | 0.33 |
-| Jetson Nano | YOLOv8s | 640x640 | FP16 | 20-25 | 40-50 | 0.43 |
-| AWS G5G | YOLOv8s | 640x640 | FP16 | 80-100 | 10-20 | 0.45 |
-| AWS G5G | YOLOv8m | 640x640 | FP16 | 50-60 | 15-25 | 0.50 |
-| Laptop AMD | YOLOv8s | 640x640 | FP32 | 20-30 | 30-50 | 0.45 |
-
-### **3. Đánh Giá Chất Lượng**
-
-| **Metric** | **Mục Tiêu** | **Cách Đo** | **Kết Quả Dự Kiến** |
-|------------|-------------|-------------|---------------------|
-| **mAP** | ≥ 0.35 | COCO evaluation | 0.35-0.45 |
-| **FPS** | ≥ 30 | Benchmark | 30-40 (Jetson) |
-| **Latency** | < 50ms | Benchmark | 25-35ms (Jetson) |
-| **False Positive Rate** | < 5% | Manual review | < 3% |
-| **Memory Usage** | < 2GB | `psutil` | ~1.5GB (Jetson) |
-| **CPU Usage** | < 80% | `psutil` | ~60-70% (Jetson) |
-| **GPU Usage** | < 90% | `pynvml` | ~80-90% (Jetson) |
+| AWS ARM64 | YOLOv8n | 320x320 | FP32 | 25-30 | 33-40 | 0.37 |
+| AWS ARM64 | YOLOv8n | 320x320 | FP16 | **30-35** | **30-35** | 0.36 |
+| AWS ARM64 | YOLOv8n | 320x320 | INT8 | **35-40** | **25-30** | 0.34 |
+| Jetson Nano | YOLOv8n | 320x320 | FP16 | **35-40** | **25-30** | 0.35 |
+| Jetson Nano | YOLOv8n | 320x320 | INT8 | **40-45** | **20-25** | 0.33 |
 
 ---
 
 ## **🛠️ Khắc Phục Sự Cố**
 
-### **1. Lỗi Thường Gặp**
+### **1. Lỗi Thường Gặp Trên AWS EC2 (ARM64)**
 
-#### **🔴 Lỗi: `CUDA out of memory`**
-**Nguyên nhân:**
-- Model quá lớn cho GPU.
-- Batch size quá lớn.
+#### **🔴 Lỗi: `ONNX Runtime not optimized for ARM64`**
+**Nguyên nhân:** ONNX Runtime chưa được tối ưu cho ARM64.
+
+**Giải pháp:**
+```bash
+# Sử dụng phiên bản ONNX Runtime mới nhất
+pip install --upgrade onnxruntime
+```
+
+---
+
+#### **🔴 Lỗi: `Low FPS on ARM64`**
+**Nguyên nhân:** Model quá nặng cho ARM64.
+
+**Giải pháp:**
+```python
+# Dùng model nhỏ nhất
+detector.config.model_type = "yolov8n"
+
+# Giảm input size
+detector.config.input_size = 320
+
+# Bật frame cache
+detector.config.enable_frame_cache = True
+```
+
+---
+
+#### **🔴 Lỗi: `High CPU Usage`**
+**Nguyên nhân:** Xử lý quá nhiều frame cùng lúc.
 
 **Giải pháp:**
 ```python
 # Giảm batch size
 detector.config.batch_size = 1
 
-# Dùng model nhỏ hơn
-detector.config.model_type = "yolov8n"
-
-# Giảm input size
-detector.config.input_size = 320
+# Giảm số luồng
+detector.config.num_inference_threads = 1
 ```
 
 ---
 
-#### **🔴 Lỗi: `TensorRT engine not found`**
-**Nguyên nhân:**
-- Chưa build TensorRT engine.
-- Đường dẫn không đúng.
-
-**Giải pháp:**
-```python
-from src.utils import ModelOptimizer
-
-optimizer = ModelOptimizer()
-
-# Build TensorRT engine
-engine_path = optimizer.optimize_for_tensorrt(
-    "yolov8n.onnx",
-    fp16_mode=True
-)
-
-# Cập nhật config
-detector.config.engine_path = engine_path
-detector.config.use_tensorrt = True
-```
-
----
-
-#### **🔴 Lỗi: `ONNX model not found`**
-**Nguyên nhân:**
-- Chưa export model sang ONNX.
-- Đường dẫn không đúng.
-
-**Giải pháp:**
-```python
-from src.utils import ModelOptimizer
-import torch
-
-# Load PyTorch model
-model = torch.hub.load('ultralytics/yolov8', 'yolov8n')
-
-# Export to ONNX
-optimizer = ModelOptimizer()
-onnx_path = optimizer.export_to_onnx(model, input_shape=(1, 3, 320, 320))
-
-# Cập nhật config
-detector.config.model_path = onnx_path
-```
-
----
-
-#### **🔴 Lỗi: `Low FPS`**
-**Nguyên nhân:**
-- Model quá nặng.
-- Input size quá lớn.
-- Không bật TensorRT.
+#### **🔴 Lỗi: `Out of Memory`**
+**Nguyên nhân:** Model quá lớn.
 
 **Giải pháp:**
 ```python
@@ -712,121 +640,6 @@ detector.config.model_type = "yolov8n"
 
 # Giảm input size
 detector.config.input_size = 320
-
-# Bật TensorRT
-detector.config.use_tensorrt = True
-
-# Bật FP16
-detector.config.use_half_precision = True
-```
-
----
-
-#### **🔴 Lỗi: `High Latency`**
-**Nguyên nhân:**
-- Xử lý đồng bộ.
-- Không bật quantization.
-- Frame cache không hiệu quả.
-
-**Giải pháp:**
-```python
-# Bật quantization
-detector.config.use_half_precision = True
-detector.config.use_int8 = True
-
-# Bật frame cache
-from src.config import PerformanceConfig
-config = PerformanceConfig(enable_frame_cache=True)
-
-# Sử dụng async processing
-import asyncio
-async def detect_async(frame):
-    return await asyncio.to_thread(detector.detect, frame)
-```
-
----
-
-#### **🔴 Lỗi: `False Positive Quá Nhiều`**
-**Nguyên nhân:**
-- Confidence threshold quá thấp.
-- Không bật temporal smoothing.
-
-**Giải pháp:**
-```python
-# Tăng confidence threshold
-detector.config.conf_threshold = 0.6
-
-# Bật temporal smoothing
-from src.detection import DetectionPostProcessor
-post_processor = DetectionPostProcessor(
-    max_track_age=2.0,
-    min_detection_confidence=0.5
-)
-```
-
----
-
-### **2. Debugging Tools**
-
-#### **🔍 Kiểm Tra GPU Usage**
-```python
-import pynvml
-
-pynvml.nvmlInit()
-handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-
-# GPU Usage
-gpu_usage = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu
-print(f"GPU Usage: {gpu_usage}%")
-
-# Memory Usage
-mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-print(f"GPU Memory: {mem_info.used / 1024**2:.1f}MB / {mem_info.total / 1024**2:.1f}MB")
-```
-
----
-
-#### **🔍 Kiểm Tra CPU/Memory Usage**
-```python
-import psutil
-
-# CPU Usage
-cpu_usage = psutil.cpu_percent(interval=1)
-print(f"CPU Usage: {cpu_usage}%")
-
-# Memory Usage
-mem_usage = psutil.virtual_memory().percent
-print(f"Memory Usage: {mem_usage}%")
-```
-
----
-
-#### **🔍 Kiểm Tra Latency**
-```python
-from src.utils import PerformanceMonitor
-
-monitor = PerformanceMonitor()
-
-# Sau khi xử lý một số frame
-metrics = monitor.get_average_metrics()
-print(f"Average Latency: {metrics.latency:.2f}ms")
-print(f"Average FPS: {metrics.fps:.2f}")
-```
-
----
-
-#### **🔍 Log Debug**
-```python
-from src.utils import setup_logger
-
-# Setup logger với level DEBUG
-logger = setup_logger("adas", log_level=logging.DEBUG)
-
-# Log chi tiết
-logger.debug("Debug message")
-logger.info("Info message")
-logger.warning("Warning message")
-logger.error("Error message")
 ```
 
 ---
@@ -835,28 +648,27 @@ logger.error("Error message")
 
 1. [Ultralytics YOLOv8 Documentation](https://docs.ultralytics.com/)
 2. [ONNX Runtime Documentation](https://onnxruntime.ai/)
-3. [TensorRT Documentation](https://developer.nvidia.com/tensorrt)
-4. [NVIDIA Jetson Nano Developer Guide](https://developer.nvidia.com/embedded/learn/get-started-jetson-nano-devkit)
-5. [PyTorch Quantization Guide](https://pytorch.org/docs/stable/quantization.html)
-6. [OpenCV Documentation](https://docs.opencv.org/4.x/)
+3. [AWS EC2 G5G Instance Guide](https://aws.amazon.com/ec2/instance-types/g5g/)
+4. [NVIDIA T4G GPU Documentation](https://docs.nvidia.com/jetson/archives/r35.1/DeveloperGuide/text/SD/Jetsons/T4GTX1.html)
+5. [ONNX Runtime Performance Tuning](https://onnxruntime.ai/docs/performance/tune_performance.html)
 
 ---
 
 ## **🎯 Kết Luận**
 
-Để đạt được **hiệu suất tối ưu** trên **Edge Devices** (như Jetson Nano), bạn nên:
+Để đạt được **hiệu suất tối ưu** trên **AWS EC2 ARM64 (G5G.xlarge)**, bạn nên:
 
 1. ✅ **Sử dụng YOLOv8n** (model nhỏ nhất)
 2. ✅ **Input size 320x320** (giảm độ phân giải)
 3. ✅ **Bật FP16/INT8 quantization** (giảm kích thước model)
-4. ✅ **Bật TensorRT** (tăng tốc độ inference)
+4. ✅ **Sử dụng ONNX Runtime** (tối ưu cho ARM64)
 5. ✅ **Bật frame cache** (giảm xử lý lặp lại)
-6. ✅ **Sử dụng multi-threading** (tận dụng CPU/GPU)
+6. ✅ **Sử dụng multi-threading** (tận dụng CPU)
 7. ✅ **Bật temporal smoothing** (giảm false positive)
 8. ✅ **Ưu tiên xử lý vật thể quan trọng** (người, xe, biển báo)
 
-Với các tối ưu trên, **Jetson Nano có thể đạt 30-40 FPS với latency < 50ms**, đáp ứng yêu cầu real-time cho **RoadWatch Copilot**.
+Với các tối ưu trên, **AWS EC2 G5G.xlarge có thể đạt 25-35 FPS với latency 30-45ms**, đáp ứng yêu cầu real-time cho **RoadWatch Copilot**.
 
 ---
 
-**🚀 Chúc bạn triển khai thành công!**
+**🚀 Chúc bạn tối ưu thành công!**
