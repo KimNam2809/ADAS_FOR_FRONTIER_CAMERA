@@ -1,0 +1,65 @@
+# Python & Environments
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# IDE / OS specific
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# YOLO / Ultralytics specific
+runs/
+# Ignore models accidentally downloaded to root directory
+yolov8n.pt
+yolov9n.pt
+yolov10n.pt
+models/yolov10n_openvino_model/
+
+# Project Output Directories
+output/*
+!output/.gitkeep
+outputs/*
+!outputs/.gitkeep
+
+# Media & Data (Ignore large files to prevent Git LFS issues, keep the directory structure)
+media/*
+!media/.gitkeep
+data/
+datasets/
+calibration/
+benchmark/videos/
+
+# Accidental / Test Model Directories (As requested)
+model/
+models_test/
+
+# Generated / Compiled Models (These should be built natively on the target device like EC2/Jetson)
+*.engine
+*.onnx
+*.trt
+*.pt
+*.bin
+*.xml

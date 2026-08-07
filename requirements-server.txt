@@ -1,0 +1,1 @@
+ultralytics-opencv-headless>=8.3,<9
