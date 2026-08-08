@@ -261,24 +261,26 @@ def process_stream(models, source, output, device, imgsz, conf, line_ratio, trac
                     cv2.imshow("YOLO Counter", display)
                     if (cv2.waitKey(10) & 0xFF) in (ord("q"), 27):
                         break
+    except KeyboardInterrupt:
+        print("\n[INFO] Stopped by user (Ctrl+C).")
     finally:
         cap.release()
         if writer is not None: writer.release()
         cv2.destroyAllWindows()
         
-    print("\n=== Performance Summary ===")
-    total_time = max(time.perf_counter() - started, 1e-6)
-    print(f"Total Frames Processed: {processed}")
-    print(f"Average FPS: {processed / total_time:.1f}")
-    if latency_buf:
-        _lat_arr = np.array(latency_buf)
-        print(f"Overall Latency P50: {np.percentile(_lat_arr, 50):.1f}ms")
-        print(f"Overall Latency P95: {np.percentile(_lat_arr, 95):.1f}ms")
-    print("===========================\n")
-        
-    for idx, (up, down) in enumerate(zip(up_list, down_list)):
-        print(f"Model {idx} UP:", dict(up))
-        print(f"Model {idx} DOWN:", dict(down))
+        print("\n=== Performance Summary ===")
+        total_time = max(time.perf_counter() - started, 1e-6)
+        print(f"Total Frames Processed: {processed}")
+        print(f"Average FPS: {processed / total_time:.1f}")
+        if latency_buf:
+            _lat_arr = np.array(latency_buf)
+            print(f"Overall Latency P50: {np.percentile(_lat_arr, 50):.1f}ms")
+            print(f"Overall Latency P95: {np.percentile(_lat_arr, 95):.1f}ms")
+        print("===========================\n")
+            
+        for idx, (up, down) in enumerate(zip(up_list, down_list)):
+            print(f"Model {idx} UP:", dict(up))
+            print(f"Model {idx} DOWN:", dict(down))
 
 
 def main():
