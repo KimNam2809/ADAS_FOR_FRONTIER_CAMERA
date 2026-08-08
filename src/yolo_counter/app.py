@@ -252,7 +252,9 @@ def process_stream(models, source, output, device, imgsz, conf, line_ratio, trac
                     cv2.putText(canvas, text, (_x_right, 40 + j * 38), cv2.FONT_HERSHEY_SIMPLEX, .9, (0, 255, 180), 2)
                     
                 if frame_index % 30 == 0:
-                    print(f"[Frame {frame_index}] FPS: {fps:.1f} | Latency P50: {p50:.1f}ms | P95: {p95:.1f}ms")
+                    total_u = sum(total_up.values())
+                    total_d = sum(total_down.values())
+                    print(f"[Frame {frame_index}] FPS: {fps:.1f} | Latency P50: {p50:.1f}ms | P95: {p95:.1f}ms | Đã đếm: LÊN {total_u} - XUỐNG {total_d}")
                     
                 if writer is not None:
                     writer.write(canvas)
