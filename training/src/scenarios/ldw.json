@@ -1,0 +1,23 @@
+{
+  "frame_metadata": {
+    "frame_id": 80,
+    "timestamp_ms": 4000,
+    "frame_age_ms": 10
+  },
+  "scene_understanding": {
+    "weather": "clear",
+    "lighting": "day"
+  },
+  "tracked_objects": [],
+  "lanes": {
+    "detected": true,
+    "left_lane": [[100, 700], [300, 400]],
+    "right_lane": [[900, 700], [700, 400]],
+    "departure_probability": 0.92,
+    "vehicle_offset_m": 0.65
+  },
+  "system_alerts": {
+    "trigger_fcw": false,
+    "trigger_ldw": true
+  }
+}

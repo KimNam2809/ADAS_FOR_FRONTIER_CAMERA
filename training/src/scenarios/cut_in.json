@@ -1,0 +1,41 @@
+{
+  "frame_metadata": {
+    "frame_id": 20,
+    "timestamp_ms": 2000,
+    "frame_age_ms": 10
+  },
+  "scene_understanding": {
+    "weather": "clear",
+    "lighting": "day"
+  },
+  "tracked_objects": [
+    {
+      "track_id": 8,
+      "class_name": "motorcycle",
+      "confidence": 0.88,
+      "bbox": [520, 260, 650, 450],
+      "depth_z": 12.0,
+      "kinematics": {
+        "relative_velocity_z_mps": -4.0,
+        "ttc_sec": 2.0,
+        "is_approaching": true,
+        "is_cut_in": true,
+        "lane_relation": "same_lane",
+        "stable_frames": 8,
+        "occluded": false,
+        "confidence": 0.88
+      }
+    }
+  ],
+  "lanes": {
+    "detected": true,
+    "left_lane": [],
+    "right_lane": [],
+    "departure_probability": 0.2,
+    "vehicle_offset_m": 0.1
+  },
+  "system_alerts": {
+    "trigger_fcw": false,
+    "trigger_ldw": false
+  }
+}
