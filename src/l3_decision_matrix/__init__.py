@@ -10,25 +10,15 @@ Architecture:
     - Task 3: MuteSLM Logic (Cơ chế Ngắt/Khóa Audio)
 
 Author: Senior FullStack Developer (5 years Edge Device experience)
+Date: 2026-08-11
 """
 
 from .contracts import (
-    ActiveEvent,
-    AudioSignal,
-    VisualSignal,
-    PriorityLevel,
-    L2OutputFrame,
-    DecisionMatrixOutput,
-    ActuationSignals,
-    SystemAlerts,
-    TrackedObject,
-    KinematicsData,
-    PRIORITY_EMERGENCY,
-    PRIORITY_HIGH,
-    PRIORITY_LOW,
-    FRAME_RATE,
-    COOLDOWN_FRAMES,
-    HYSTERESIS_LOCK_FRAMES
+    ActiveEvent, AudioSignal, VisualSignal, PriorityLevel,
+    L2OutputFrame, DecisionMatrixOutput, ActuationSignals,
+    SystemAlerts, TrackedObject, KinematicsData,
+    PRIORITY_EMERGENCY, PRIORITY_HIGH, PRIORITY_LOW,
+    FRAME_RATE, COOLDOWN_FRAMES, HYSTERESIS_LOCK_FRAMES
 )
 
 from .arbiter import ArbitrationLogic
@@ -42,7 +32,7 @@ __all__ = [
     "MuteSLMLogic",
     "ActiveEvent",
     "AudioSignal",
-    "VisualSignal",
+    "VisualSignal", 
     "PriorityLevel",
     "L2OutputFrame",
     "DecisionMatrixOutput",
