@@ -1,0 +1,11 @@
+{
+  "frame_id": 0,
+  "timestamp": "2026-08-11T10:00:00.000Z",
+  "active_event": "FCW",
+  "priority_level": 1,
+  "actuation_signals": {
+    "audio": "urgent_beep",
+    "visual": "red_overlay",
+    "mute_slm": true
+  }
+}

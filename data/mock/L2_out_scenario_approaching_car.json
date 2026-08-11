@@ -1,0 +1,30 @@
+{
+  "frame_id": 0,
+  "timestamp": "2026-08-11T10:00:00.000Z",
+  "system_alerts": {
+    "trigger_fcw": true,
+    "trigger_ldw": true,
+    "trigger_cut_in": false
+  },
+  "tracked_objects": [
+    {
+      "object_id": 1,
+      "class_name": "car",
+      "position": {"x": 100.5, "y": 50.2, "z": 25.0},
+      "velocity": {"x": -5.0, "y": 0.0, "z": 0.0},
+      "kinematics": {
+        "hazard_level": 3,
+        "ttc": 0.8,
+        "relative_velocity": -12.5,
+        "lane_deviation": 0.0
+      },
+      "bbox_2d": {"x_min": 300, "y_min": 200, "x_max": 400, "y_max": 300}
+    }
+  ],
+  "ego_vehicle": {
+    "position": {"x": 0.0, "y": 0.0, "z": 0.0},
+    "velocity": {"x": 10.0, "y": 0.0, "z": 0.0},
+    "lane_id": 1,
+    "lane_center_offset": -0.2
+  }
+}
