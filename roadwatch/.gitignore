@@ -1,0 +1,42 @@
+# Local environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Runtime data
+data/*
+!data/.gitkeep
+logs/
+*.db
+*.db-shm
+*.db-wal
+
+# Heavy local assets (download/mount separately)
+models/*
+!models/.gitkeep
+media/*
+!media/.gitkeep
+voices/*
+!voices/.gitkeep
+
+# Frontend build
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local secrets and overrides
+.env
+configs/runtime.json
+reports/*.json
+reports/*.csv
+reports/*.mp4

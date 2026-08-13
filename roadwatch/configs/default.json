@@ -1,0 +1,73 @@
+{
+  "app": {
+    "name": "RoadWatch",
+    "environment": "development",
+    "auto_start": false,
+    "default_source": "test_video10.mp4",
+    "loop_video": true,
+    "max_processed_fps": 12.0,
+    "jpeg_quality": 80,
+    "retain_events": 500
+  },
+  "inference": {
+    "runtime": "auto",
+    "device": "cpu",
+    "image_size": 640,
+    "object_confidence": 0.38,
+    "sign_confidence": 0.42,
+    "object_interval": 1,
+    "lane_interval": 2,
+    "sign_interval": 5,
+    "enable_objects": true,
+    "enable_signs": true,
+    "enable_lane": true,
+    "road_user_classes": [0, 1, 2, 3, 5, 7]
+  },
+  "tracking": {
+    "iou_threshold": 0.25,
+    "max_missed": 8,
+    "confirmation_hits": 3,
+    "history_size": 12
+  },
+  "risk": {
+    "fcw_warning": 0.56,
+    "fcw_critical": 0.78,
+    "vulnerable_warning": 0.52,
+    "cut_in_warning": 0.60,
+    "lane_quality_min": 0.48,
+    "ldw_offset_warning": 0.34,
+    "ldw_confirmation_frames": 5,
+    "speed_sign_confirmation_hits": 3,
+    "critical_confidence_min": 0.55
+  },
+  "alerts": {
+    "global_audio_gap_seconds": 2.5,
+    "warning_cooldown_seconds": 7.0,
+    "critical_cooldown_seconds": 2.0,
+    "sign_cooldown_seconds": 20.0,
+    "max_visible_events": 6
+  },
+  "audio": {
+    "enabled": true,
+    "tts_enabled": true,
+    "provider": "auto",
+    "piper_voice": "voices/vi_VN-vais1000-medium.onnx"
+  },
+  "vehicle": {
+    "profile": "VF6",
+    "camera_calibrated": false,
+    "can_read_only": true,
+    "profiles": {
+      "VF5": {"width_mm": 1723, "display_class": "compact", "ui_scale": 1.0},
+      "VF6": {"width_mm": 1834, "display_class": "12.9-inch", "ui_scale": 1.0},
+      "VF7": {"width_mm": 1890, "display_class": "12.9-inch", "ui_scale": 1.0},
+      "VF8": {"width_mm": 1934, "display_class": "15.6-inch", "ui_scale": 1.08},
+      "VF9": {"width_mm": 2004, "display_class": "15.6-inch", "ui_scale": 1.08}
+    }
+  },
+  "security": {
+    "token_ttl_minutes": 480,
+    "bind_host": "127.0.0.1",
+    "allow_lan": false
+  }
+}

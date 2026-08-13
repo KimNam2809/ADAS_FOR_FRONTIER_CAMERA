@@ -1,0 +1,16 @@
+services:
+  roadwatch:
+    build:
+      context: .
+      dockerfile: Dockerfile.nvidia
+    image: roadwatch-copilot:nvidia
+    environment:
+      ROADWATCH_DEVICE: "0"
+      ROADWATCH_RUNTIME: cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
