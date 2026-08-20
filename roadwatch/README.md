@@ -40,6 +40,29 @@ models/
 
 Video demo đặt trong `media/`. Voice Piper đặt trong `voices/`. Không commit các thư mục nặng này.
 
+## Tải model và video sau khi clone
+
+Model và video demo không được lưu trong Git để repository luôn nhẹ. Sau khi
+clone, tải asset từ Google Drive rồi giải nén/copy **trực tiếp** vào hai thư mục
+dưới đây (không tạo thêm lớp `models/models` hoặc `media/media`):
+
+- [Tải model RoadWatch](https://drive.google.com/drive/folders/16pSDUZ3qo-9px9ExoHoz-H2ZetDTb3_n) → `roadwatch/models/`
+- [Tải video/ảnh demo](https://drive.google.com/drive/folders/1UCGEaSL_ZNqAZ5X_VIAgTle1fSUA291g) → `roadwatch/media/`
+
+Các bước kiểm tra nhanh trên PowerShell:
+
+```powershell
+cd roadwatch
+Get-ChildItem .\models
+Get-ChildItem .\media
+```
+
+Giữ nguyên tên file model như danh sách ở phần trên. Tối thiểu cần có
+`yolo11n.pt`, `yolo11s_vietnam_traffic.pt` và
+`yolop_lane_detection_640.onnx`; dùng model Phase 2/Phase 2.1 khi muốn chạy
+các profile candidate. Không commit lại các file `.pt`, `.onnx`, video hoặc
+dữ liệu tải từ Drive.
+
 ## Chạy nhanh trên Windows
 
 Yêu cầu Python 3.10–3.12, Node.js 20+, npm và PowerShell:
