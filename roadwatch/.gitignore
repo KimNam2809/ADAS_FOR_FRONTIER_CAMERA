@@ -1,5 +1,6 @@
 # Local environments and caches
 .venv/
+.cache/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -20,6 +21,9 @@ media/*
 !media/.gitkeep
 voices/*
 !voices/.gitkeep
+datasets/*
+!datasets/README.md
+!datasets/.gitkeep
 
 # Frontend build
 frontend/node_modules/
@@ -40,3 +44,9 @@ configs/runtime.json
 reports/*.json
 reports/*.csv
 reports/*.mp4
+reports/*.jpg
+reports/review/
+reports/*.db
+reports/ab-*.json
+reports/runtime-eval-*.json
+reports/events-eval-*.db

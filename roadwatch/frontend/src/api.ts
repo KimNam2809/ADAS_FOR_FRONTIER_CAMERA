@@ -8,15 +8,24 @@ export type MediaItem = { name: string; size_mb: number };
 
 export type AlertEvent = {
   id?: number;
+  event_id?: string;
+  frame_id?: number;
+  source_time?: number;
   created_at: number;
+  expires_at?: number;
   event_type: string;
   severity: "critical" | "warning" | "advisory" | "informational";
   message: string;
+  display_message?: string;
+  spoken_message?: string;
   confidence: number;
   risk_score: number;
   object_id?: number;
   location?: string;
   audio_action: string;
+  audio_status?: string;
+  lifecycle_status?: string;
+  suppression_reason?: string;
   evidence: Record<string, unknown>;
 };
 
@@ -30,20 +39,30 @@ export type Status = {
   signs: Array<Record<string, unknown>>;
   lane: { quality: number; offset: number };
   events: AlertEvent[];
+  active_events?: AlertEvent[];
   degraded_reasons: string[];
   error?: string;
   guardrail: string;
   models?: Record<string, { loaded: boolean; provider: string; error?: string }>;
-  audio: { enabled: boolean; provider: string; queue_size: number; error?: string };
+  audio: { enabled: boolean; provider: string; queue_size: number; completed?: number; dropped_stale?: number; error?: string };
   metrics: {
     uptime_seconds: number;
     captured_frames: number;
     processed_frames: number;
     dropped_frames: number;
+    scheduled_skipped_frames?: number;
+    overload_dropped_frames?: number;
     processed_fps: number;
     frame_drop_ratio: number;
+    sampling_skip_ratio?: number;
+    overload_drop_ratio?: number;
     alerts_emitted: number;
     alerts_suppressed: number;
+    audio_completed?: number;
+    audio_dropped_stale?: number;
+    audio_stale_event_rate?: number;
+    events_by_type?: Record<string, number>;
+    suppression_reasons?: Record<string, number>;
     latencies: Record<string, { mean_ms: number; p50_ms: number; p95_ms: number; samples: number }>;
   };
 };
@@ -68,10 +87,10 @@ export const api = {
     }),
   status: (token: string) => request<Status>("/api/status", token),
   media: (token: string) => request<MediaItem[]>("/api/media", token),
-  start: (token: string, source: string) =>
+  start: (token: string, source: string, startSeconds = 0, durationSeconds?: number) =>
     request<{ ok: boolean }>("/api/session/start", token, {
       method: "POST",
-      body: JSON.stringify({ source }),
+      body: JSON.stringify({ source, start_seconds: startSeconds, duration_seconds: durationSeconds }),
     }),
   stop: (token: string) => request<{ ok: boolean }>("/api/session/stop", token, { method: "POST" }),
   config: (token: string) => request<Record<string, unknown>>("/api/config", token),
@@ -81,4 +100,3 @@ export const api = {
       body: JSON.stringify({ patch }),
     }),
 };
-

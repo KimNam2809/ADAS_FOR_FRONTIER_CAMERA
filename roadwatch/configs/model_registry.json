@@ -1,0 +1,126 @@
+{
+  "schema_version": 2,
+  "active_object_profile": "baseline_coco",
+  "active_traffic_sign_profile": "roadwatch_sign_phase2",
+  "candidates": {
+    "roadwatch_objects_v1": {
+      "file": "roadwatch_objects_v1.pt",
+      "sha256": "D4603F64B5E2B0BC46CD64EE03B1B23566B0F36F10BFB7F9277F4A8B32D0C939",
+      "taxonomy": ["person", "rider", "bicycle", "motorcycle", "car", "bus", "truck"],
+      "training_source": "lekimnam/roadwatch-object-detector-phase-2",
+      "training_data": "BDD100K + DAWN; BARD quarantined",
+      "epochs": 30,
+      "test_map50": 0.4815507,
+      "test_map50_95": 0.280367,
+      "promotion_status": "superseded_by_roadwatch_objects_v1_1"
+    },
+    "roadwatch_objects_v1_1": {
+      "file": "roadwatch_objects_v1_1.pt",
+      "sha256": "FFBEF9FF3916E4826D7182879767805B390D2A895230CEC3C9EB547102EC896A",
+      "taxonomy": ["person", "rider", "bicycle", "motorcycle", "car", "bus", "truck"],
+      "training_source": "lekimnam/roadwatch-object-detector-phase-2-1",
+      "training_data": "BDD100K + DAWN; train-only VRU replication; BARD quarantined",
+      "epochs": 20,
+      "continued_from": "roadwatch_objects_v1",
+      "test_precision": 0.6567634,
+      "test_recall": 0.4606741,
+      "test_map50": 0.5124074,
+      "test_map50_95": 0.2987615,
+      "calibrated_ab": {
+        "timestamp_event_precision": 0.375,
+        "timestamp_event_recall": 0.375,
+        "timestamp_false_alerts_per_minute": 5.7692,
+        "baseline_timestamp_event_precision": 0.3077,
+        "baseline_timestamp_event_recall": 0.5,
+        "baseline_timestamp_false_alerts_per_minute": 10.3846
+      },
+      "promotion_status": "candidate_failed_timestamp_recall_gate"
+    }
+  },
+  "lane_candidates": {
+    "ufldv2_culane_res18": {
+      "file": "ufldv2_culane_res18_320x1600.onnx",
+      "source": "cfzd/Ultra-Fast-Lane-Detection-v2 official CULane ResNet-18 checkpoint",
+      "profile": "ufldv2_fusion",
+      "local_cpu_samples": 21,
+      "usable_coverage": 0.8571,
+      "mean_quality": 0.6878,
+      "latency_p95_ms": 135.072,
+      "baseline_yolop_usable_coverage": 0.3333,
+      "baseline_yolop_latency_p95_ms": 214.71,
+      "directml_fusion_benchmark": {
+        "processed_fps": 3.04,
+        "lane_p95_ms": 124.68,
+        "end_to_end_p95_ms": 149.37,
+        "lane_quality_coverage": 1.0,
+        "pipeline_error": null
+      },
+      "promotion_status": "candidate_failed_edge_fps_gate"
+    }
+  },
+  "traffic_sign_candidates": {
+    "roadwatch_sign_phase2": {
+      "detector_file": "roadwatch_detector_v2.pt",
+      "detector_onnx_file": "roadwatch_detector_v2.onnx",
+      "detector_sha256": "83910CD5ED86120825B6A770CB49C3344AF194B423BE78281B09141B6ACB89E3",
+      "detector_onnx_sha256": "268268164CF00B24680FCE7CDC7AA072874E236F045D1DBA83008A10CD0B7291",
+      "speed_classifier_file": "roadwatch_speed_digits_v2.pt",
+      "speed_classifier_onnx_file": "roadwatch_speed_digits_v2.onnx",
+      "speed_classifier_sha256": "8BEA1B1F49BD713FD161593C6094C3B688F9EC447FE76F5341D8B20BBFD1B5F5",
+      "speed_classifier_onnx_sha256": "B26B89E8692CB694B869EF4C62269FA0AFA29C76BC5006F4FD6A8A7D3E9D8ECF",
+      "training_source": "lekimnam/roadwatch-traffic-sign-phase-2 version 15",
+      "quality_gate": {
+        "automated_pass": true,
+        "clean_seed_accuracy": 0.9609756,
+        "class_90_train": 52,
+        "class_90_val": 15,
+        "unknown_train": 314,
+        "unknown_val": 4
+      },
+      "detector_validation": {
+        "epochs_completed": 9,
+        "best_precision": 0.95847,
+        "best_recall": 0.96651,
+        "best_map50": 0.98741,
+        "best_map50_95": 0.83217
+      },
+      "speed_classifier_validation": {
+        "epochs_completed": 30,
+        "top1_accuracy": 0.98254,
+        "top5_accuracy": 0.99501
+      },
+      "local_static_smoke": {
+        "source": "media/OIP.webp",
+        "detected_speed": 50,
+        "classifier_confidence": 0.9941,
+        "hazard_tts_consistent": true,
+        "onnx_provider": "DmlExecutionProvider"
+      },
+      "locked_video_regression": {
+        "speed_classifier_confidence": 0.95,
+        "test_video10_expected_speed": 60,
+        "test_video10_tts_speed": 60,
+        "test_video10_false_70_after_calibration": 0,
+        "test_video10_mean_latency_ms": 147.144,
+        "test_video11_expected_speed": 80,
+        "test_video11_tts_speed": 80,
+        "test_video11_physical_speeds_detected": [50, 60, 80],
+        "test_video11_mean_latency_ms": 115.261,
+        "video_test_negative_window_seconds": [34, 67],
+        "video_test_generic_candidates": 204,
+        "video_test_false_speed_events": 0,
+        "video_test_mean_latency_ms": 73.726,
+        "hud_tts_consistent": true
+      },
+      "unsupported_numeric_values": [10],
+      "promotion_status": "promoted_default_after_quality_gate_and_locked_video_regression"
+    }
+  },
+  "fallen_rider_candidates": {
+    "roadwatch_fallen_rider_v1": {
+      "file": "roadwatch_fallen_rider_v1.pt",
+      "taxonomy": ["fallen_person", "fallen_rider"],
+      "promotion_status": "blocked_on_target_dashcam_dataset_quality_gate"
+    }
+  }
+}

@@ -34,7 +34,9 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 if (-not $SkipFrontend) {
     Push-Location frontend
     npm.cmd install
-    npm.cmd run build
+    $Node = Get-Command node.exe -ErrorAction Stop
+    & $Node.Source ".\node_modules\typescript\bin\tsc" -b
+    & $Node.Source ".\node_modules\vite\bin\vite.js" build
     Pop-Location
 }
 
@@ -43,4 +45,3 @@ if (-not $SkipVoice) {
     & ".\.venv\Scripts\python.exe" -m piper.download_voices vi_VN-vais1000-medium --data-dir voices
 }
 Write-Host "RoadWatch setup hoàn tất. Chạy .\scripts\start.ps1"
-

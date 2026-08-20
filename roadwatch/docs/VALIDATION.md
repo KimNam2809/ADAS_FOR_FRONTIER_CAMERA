@@ -45,3 +45,45 @@ Các event cụ thể phụ thuộc thời điểm benchmark và threshold versi
 
 RoadWatch chưa được hiệu chuẩn/certify cho xe thật. Checklist giao diện và audio phải được người demo chạy lại trên chính màn hình/loa dùng trước hội đồng.
 
+## RoadWatch v0.2 — 2026-08-17
+
+Runtime AMD đã chuyển hai detector sang ONNX DirectML; YOLOP tiếp tục DirectML. Năm scenario video đầy đủ đã được replay bằng `scripts/evaluate.py` (audio tắt để tách latency perception).
+
+| Scenario | FPS | E2E P50/P95 | Presence recall proxy | Repeated proxy | Lane coverage | Kết luận chính |
+|---|---:|---:|---:|---:|---:|---|
+| test_video10 | 8,65 | 95,56 / 141,02 ms | 1,00 | 0,294 | 0,686 | Bắt LDW/sign type; model vẫn dự đoán 40 thay vì ground truth 60. |
+| test_video11 | 9,03 | 99,29 / 148,86 ms | 0,50 | 0,067 | 0,213 | Biển 80 đúng; miss `lead_vehicle_braking`, nhưng có FCW critical cho xe tải. |
+| test_video2 | 5,05 | 96,50 / 143,25 ms | 1,00 | 0,333 | 0,633 | Đã phát cross-traffic và vulnerable-road-user. |
+| test_video3 | 8,55 | 95,11 / 139,41 ms | 1,00 | 0,348 | 0,231 | Có FCW event; audio playback thật chưa đo trong evaluation. |
+| video_test ngày/đêm | 9,52 | 97,33 / 137,82 ms | 0,667 | 0,265 | 0,189 | Bắt cross-traffic/vulnerable/cut-in; vẫn miss lead braking và lane coverage đêm thấp. |
+
+So với baseline v0.1 trên `test_video10`, processed FPS tăng từ 4,31 lên 8,65–9,03 trong full replay; P95 end-to-end giảm từ 245,40 ms xuống khoảng 141–149 ms. Một benchmark 30 giây có pacing đo 8,26 FPS, P50 104,71 ms, P95 155,25 ms.
+
+FCW hysteresis/re-arm cùng cooldown 12 giây giảm event trên `test_video10` từ 30 (bản thử đầu v0.2) xuống 17; repeated proxy giảm từ 0,567 xuống 0,294. Đây vẫn chưa phải false-alert metric vì manifest mới có expectation cấp video.
+
+### Metric chưa đủ điều kiện đo
+
+- Object/sign mAP, precision, recall: chưa có bounding-box ground truth cho bộ RoadWatch.
+- Event-level alert precision/recall, false alerts/minute và time-to-warning: chưa có timestamp ground truth cho từng event.
+- Audio stale rate thực: evaluation tắt audio; regression test đã xác minh expired event không được phát.
+- Metric TTC, Jetson/TensorRT, CAN và closed-course: bị gate do chưa có calibration/phần cứng/thẩm quyền thử xe.
+
+Report JSON local: `reports/evaluation-v0.2-*.json`, `reports/benchmark-v0.2-amd-onnx.json`, `reports/edge-preflight-latest.json` (đều Git ignore).
+
+## RoadWatch v0.2.1 — targeted incident regression
+
+Các lỗi được tái hiện từ phản hồi thực tế: `test_video1` từng xử lý đủ 1.046 frame nhưng phát 0 event vì lane quality chỉ đạt gate ở 4,58% frame; watermark trong `video_test` bị phân loại nhầm thành biển tốc độ; một object đồng thời tạo nhiều banner FCW/cut-in/vulnerable.
+
+Biện pháp: near-field threat fallback không phụ thuộc YOLOP khi nguy cơ rất gần, motion window ngắn cho cut-in, brake-light cue có confirmation, sign geometry/red-ring/motion validation, semantic cooldown, deduplicate cảnh báo cùng object, và canonical `display_message == spoken_message`. Piper cache v2 có 140 ms silence để tránh thiết bị audio cắt từ đầu câu.
+
+| Scenario mục tiêu | Events | Event types đạt | FPS | E2E P50/P95 | Speed false positive |
+|---|---:|---|---:|---:|---|
+| test_video1, 0–42 s | 9 | cut-in, FCW, lead-braking | 8,85 | 93,06 / 142,14 ms | 0 |
+| video_test đêm, 0–34 s | 9 | cross-traffic, vulnerable, FCW | 9,93 | 91,33 / 132,57 ms | 0 |
+| video_test ngày, 34–67 s | 32 | cross-traffic, vulnerable, cut-in, FCW | 8,53 | 100,75 / 151,10 ms | 0 |
+
+Trong `test_video1`, FCW critical được tạo tại source time 16,64 s và 31,52 s; evaluation đánh dấu `beep_tts` nhưng tắt thiết bị audio. Đoạn đêm tạo cảnh báo cross-traffic từ 13,33 s, xe máy từ 15,83 s và FCW critical tại 29,83 s. Payload banner/TTS đạt 100% consistency trên ba scenario.
+
+Đoạn ngày vẫn có mật độ event cao do video đông road user, camera/scene thay đổi và tracker bị phân mảnh. Đây là giới hạn còn phải đánh giá bằng timestamp/object ground truth; không được gọi mọi event ngoài expectation là false alert.
+
+YOLOP hiện xuất binary lane mask; `_fit_ego_lane` chỉ fit hành lang ego để phục vụ LDW/FCW, không phải mô hình lane-instance và không có khả năng đếm chính xác 2/3 lane. Khi chất lượng thấp, LDW bị khóa thay vì hiển thị số lane sai.

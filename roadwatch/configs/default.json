@@ -5,6 +5,7 @@
     "auto_start": false,
     "default_source": "test_video10.mp4",
     "loop_video": true,
+    "pace_replay": true,
     "max_processed_fps": 12.0,
     "jpeg_quality": 80,
     "retain_events": 500
@@ -12,12 +13,49 @@
   "inference": {
     "runtime": "auto",
     "device": "cpu",
+    "lane_profile": "yolop",
+    "drivable_interval": 4,
+    "object_profile": "baseline_coco",
+    "object_profiles": {
+      "baseline_coco": {
+        "model": "yolo11n.pt",
+        "onnx_model": "yolo11n.onnx",
+        "road_user_classes": [0, 1, 2, 3, 5, 7]
+      },
+      "roadwatch_objects_v1": {
+        "model": "roadwatch_objects_v1.pt",
+        "onnx_model": "roadwatch_objects_v1.onnx",
+        "road_user_classes": [0, 1, 2, 3, 4, 5, 6]
+      },
+      "roadwatch_objects_v1_1": {
+        "model": "roadwatch_objects_v1_1.pt",
+        "onnx_model": "roadwatch_objects_v1_1.onnx",
+        "road_user_classes": [0, 1, 2, 3, 4, 5, 6],
+        "class_confidence": {
+          "person": 0.40,
+          "rider": 0.42,
+          "bicycle": 0.40,
+          "motorcycle": 0.42,
+          "car": 0.55,
+          "bus": 0.52,
+          "truck": 0.52
+        }
+      }
+    },
+    "prefer_onnx_detectors": true,
+    "object_model": "yolo11n.pt",
+    "object_onnx_model": "yolo11n.onnx",
+    "sign_model": "roadwatch_detector_v2.pt",
+    "sign_onnx_model": "roadwatch_detector_v2.onnx",
+    "speed_classifier_model": "roadwatch_speed_digits_v2.pt",
+    "speed_classifier_confidence": 0.95,
     "image_size": 640,
     "object_confidence": 0.38,
     "sign_confidence": 0.42,
     "object_interval": 1,
     "lane_interval": 2,
     "sign_interval": 5,
+    "sign_candidate_interval": 1,
     "enable_objects": true,
     "enable_signs": true,
     "enable_lane": true,
@@ -27,31 +65,70 @@
     "iou_threshold": 0.25,
     "max_missed": 8,
     "confirmation_hits": 3,
-    "history_size": 12
+    "history_size": 12,
+    "semantic_family_matching": true
   },
   "risk": {
     "fcw_warning": 0.56,
     "fcw_critical": 0.78,
+    "fcw_rearm_hysteresis": 0.08,
     "vulnerable_warning": 0.52,
     "cut_in_warning": 0.60,
     "lane_quality_min": 0.48,
     "ldw_offset_warning": 0.34,
     "ldw_confirmation_frames": 5,
     "speed_sign_confirmation_hits": 3,
-    "critical_confidence_min": 0.55
+    "speed_sign_confirmation_seconds": 0.25,
+    "traffic_sign_confirmation_hits": 3,
+    "traffic_sign_confirmation_seconds": 0.25,
+    "traffic_sign_tracking_iou_min": 0.25,
+    "speed_sign_fallback_confidence": 0.72,
+    "speed_sign_fallback_motion_min": 0.035,
+    "speed_sign_visual_validation": true,
+    "speed_sign_red_ring_min": 0.018,
+    "speed_sign_min_area_ratio": 0.00008,
+    "speed_sign_max_area_ratio": 0.025,
+    "speed_sign_close_max_area_ratio": 0.06,
+    "speed_sign_close_red_ring_min": 0.08,
+    "speed_sign_close_classifier_confidence_min": 0.90,
+    "speed_sign_aspect_min": 0.55,
+    "speed_sign_aspect_max": 1.55,
+    "speed_sign_max_bottom_ratio": 0.82,
+    "critical_confidence_min": 0.55,
+    "enable_brake_light_heuristic": true,
+    "brake_light_score_min": 0.42,
+    "lead_braking_confirmation_frames": 3,
+    "cross_traffic_lateral_min": 0.028,
+    "near_field_proximity": 0.48,
+    "near_field_approach_min": 0.015,
+    "near_field_lateral_min": 0.018,
+    "near_field_width_ratio": 0.18,
+    "near_field_critical_approach": 0.12,
+    "near_field_critical_proximity": 0.58,
+    "vulnerable_near_field_proximity": 0.18,
+    "vulnerable_lateral_override": 0.05,
+    "cut_in_proximity_override": 0.30,
+    "lane_offset_smoothing_alpha": 0.35
   },
   "alerts": {
     "global_audio_gap_seconds": 2.5,
-    "warning_cooldown_seconds": 7.0,
+    "warning_cooldown_seconds": 12.0,
     "critical_cooldown_seconds": 2.0,
     "sign_cooldown_seconds": 20.0,
-    "max_visible_events": 6
+    "sign_audio_retry_seconds": 1.0,
+    "speed_sign_audio_pending_seconds": 4.0,
+    "max_visible_events": 6,
+    "advisory_ttl_seconds": 2.0,
+    "warning_ttl_seconds": 1.5,
+    "critical_ttl_seconds": 1.0,
+    "visual_ttl_seconds": 2.5
   },
   "audio": {
     "enabled": true,
     "tts_enabled": true,
     "provider": "auto",
-    "piper_voice": "voices/vi_VN-vais1000-medium.onnx"
+    "piper_voice": "voices/vi_VN-vais1000-medium.onnx",
+    "beep_pattern": [[1180, 90], [0, 55], [1450, 130]]
   },
   "vehicle": {
     "profile": "VF6",

@@ -59,6 +59,10 @@ class ConfigManager:
             base["inference"]["device"] = os.environ["ROADWATCH_DEVICE"]
         if os.getenv("ROADWATCH_RUNTIME"):
             base["inference"]["runtime"] = os.environ["ROADWATCH_RUNTIME"]
+        if os.getenv("ROADWATCH_OBJECT_PROFILE"):
+            base["inference"]["object_profile"] = os.environ["ROADWATCH_OBJECT_PROFILE"]
+        if os.getenv("ROADWATCH_LANE_PROFILE"):
+            base["inference"]["lane_profile"] = os.environ["ROADWATCH_LANE_PROFILE"]
         if os.getenv("ROADWATCH_MAX_FPS"):
             base["app"]["max_processed_fps"] = float(os.environ["ROADWATCH_MAX_FPS"])
         return base
@@ -96,6 +100,11 @@ class ConfigManager:
             raise ValueError("sign_confidence phải nằm trong [0.05, 0.99]")
         if int(inf["image_size"]) not in {320, 416, 512, 640, 768}:
             raise ValueError("image_size không thuộc profile được kiểm thử")
+        object_profile = str(inf.get("object_profile", "baseline_coco"))
+        if object_profile not in inf.get("object_profiles", {}):
+            raise ValueError(f"Object detector profile không tồn tại: {object_profile}")
+        if str(inf.get("lane_profile", "yolop")) not in {"yolop", "ufldv2_fusion"}:
+            raise ValueError("Lane profile không được hỗ trợ")
         risk = config["risk"]
         if float(risk["fcw_warning"]) >= float(risk["fcw_critical"]):
             raise ValueError("Ngưỡng FCW warning phải nhỏ hơn critical")
@@ -125,21 +134,29 @@ class ConfigManager:
 
 
 def model_inventory() -> list[dict[str, Any]]:
-    required = [
-        "yolo11n.pt",
-        "yolo11s_vietnam_traffic.pt",
-        "yolop_lane_detection_640.onnx",
-        "yolop_lane_detection.pth",
+    inventory = [
+        ("yolo11n.pt", True),
+        ("roadwatch_objects_v1.pt", False),
+        ("roadwatch_objects_v1_1.pt", False),
+        ("yolo11s_vietnam_traffic.pt", True),
+        ("roadwatch_detector_v2.pt", False),
+        ("roadwatch_detector_v2.onnx", False),
+        ("yolop_lane_detection_640.onnx", True),
+        ("yolop_lane_detection.pth", False),
+        ("ufldv2_culane_res18_320x1600.onnx", False),
+        ("roadwatch_speed_digits_v2.pt", False),
+        ("roadwatch_speed_digits_v2.onnx", False),
     ]
     return [
         {
             "name": name,
+            "required": required,
             "available": (MODEL_ROOT / name).exists(),
             "size_mb": round((MODEL_ROOT / name).stat().st_size / 1_048_576, 2)
             if (MODEL_ROOT / name).exists()
             else 0,
         }
-        for name in required
+        for name, required in inventory
     ]
 
 

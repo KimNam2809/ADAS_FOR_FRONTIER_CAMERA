@@ -11,6 +11,8 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 os.environ.setdefault("ROADWATCH_DISABLE_AUDIO", "1")
 
@@ -24,10 +26,25 @@ def main() -> int:
     parser.add_argument("--source", default="test_video10.mp4")
     parser.add_argument("--seconds", type=int, default=30)
     parser.add_argument("--output", default="reports/benchmark-latest.json")
+    parser.add_argument("--object-profile", default="baseline_coco")
+    parser.add_argument("--lane-profile", choices=["yolop", "ufldv2_fusion"], default="yolop")
     args = parser.parse_args()
 
-    config = ConfigManager()
-    storage = Storage()
+    stamp = int(time.time() * 1000)
+    config = ConfigManager(
+        runtime_path=PROJECT_ROOT / "reports" / f"benchmark-runtime-{stamp}.json"
+    )
+    config.update(
+        {
+            "inference": {
+                "object_profile": args.object_profile,
+                "lane_profile": args.lane_profile,
+            },
+            "audio": {"enabled": False},
+        },
+        persist=False,
+    )
+    storage = Storage(PROJECT_ROOT / "reports" / f"benchmark-events-{stamp}.db")
     service = RoadWatchService(config, storage)
     try:
         service.start(args.source)
@@ -48,11 +65,16 @@ def main() -> int:
         },
         "source": args.source,
         "duration_seconds": args.seconds,
+        "profiles": {
+            "object": args.object_profile,
+            "lane": args.lane_profile,
+        },
         "metrics": status["metrics"],
         "models": status.get("models", {}),
         "lane": status.get("lane", {}),
         "event_count": len(status.get("events", [])),
         "degraded_reasons": status.get("degraded_reasons", []),
+        "pipeline_error": status.get("error"),
         "measurement_note": "Replay benchmark; image-space risk is not metric TTC.",
     }
     output = PROJECT_ROOT / args.output
@@ -60,7 +82,7 @@ def main() -> int:
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
     print(f"\nĐã lưu bằng chứng benchmark: {output}")
-    return 0 if not report["degraded_reasons"] else 1
+    return 0 if not report["degraded_reasons"] and not report["pipeline_error"] else 1
 
 
 if __name__ == "__main__":

@@ -39,7 +39,7 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
 
     app = FastAPI(
         title="RoadWatch Edge API",
-        version="0.1.0",
+        version="0.2.1",
         description="Local-only API for an evidence-aware driver warning assistant.",
         lifespan=lifespan,
     )
@@ -90,7 +90,7 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
         request: SessionRequest, _: User = Depends(current_user)
     ) -> dict[str, Any]:
         try:
-            service.start(request.source)
+            service.start(request.source, request.start_seconds, request.duration_seconds)
             return {"ok": True, "source": request.source}
         except (ValueError, FileNotFoundError, RuntimeError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc

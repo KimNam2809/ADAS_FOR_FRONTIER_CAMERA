@@ -16,8 +16,30 @@ class MetricsCollector:
         self.captured_frames = 0
         self.processed_frames = 0
         self.dropped_frames = 0
+        self.scheduled_skipped_frames = 0
+        self.overload_dropped_frames = 0
         self.alerts_emitted = 0
         self.alerts_suppressed = 0
+        self.audio_completed = 0
+        self.audio_dropped_stale = 0
+        self.events_by_type: dict[str, int] = defaultdict(int)
+        self.suppression_reasons: dict[str, int] = defaultdict(int)
+        self.lane_frames = 0
+        self.lane_eligible_frames = 0
+
+    def record_lane_quality(self, quality: float, threshold: float) -> None:
+        with self._lock:
+            self.lane_frames += 1
+            if quality >= threshold:
+                self.lane_eligible_frames += 1
+
+    def record_event(self, event_type: str) -> None:
+        with self._lock:
+            self.events_by_type[event_type] += 1
+
+    def record_suppression(self, reason: str) -> None:
+        with self._lock:
+            self.suppression_reasons[reason] += 1
 
     def observe(self, name: str, milliseconds: float) -> None:
         with self._lock:
@@ -51,12 +73,31 @@ class MetricsCollector:
                 "captured_frames": self.captured_frames,
                 "processed_frames": self.processed_frames,
                 "dropped_frames": self.dropped_frames,
+                "scheduled_skipped_frames": self.scheduled_skipped_frames,
+                "overload_dropped_frames": self.overload_dropped_frames,
                 "processed_fps": round(self.processed_frames / elapsed, 2),
                 "frame_drop_ratio": round(
                     self.dropped_frames / max(self.captured_frames, 1), 4
                 ),
+                "sampling_skip_ratio": round(
+                    self.scheduled_skipped_frames / max(self.captured_frames, 1), 4
+                ),
+                "overload_drop_ratio": round(
+                    self.overload_dropped_frames / max(self.captured_frames, 1), 4
+                ),
                 "alerts_emitted": self.alerts_emitted,
                 "alerts_suppressed": self.alerts_suppressed,
+                "audio_completed": self.audio_completed,
+                "audio_dropped_stale": self.audio_dropped_stale,
+                "audio_stale_event_rate": round(
+                    self.audio_dropped_stale
+                    / max(self.audio_completed + self.audio_dropped_stale, 1),
+                    4,
+                ),
+                "events_by_type": dict(self.events_by_type),
+                "suppression_reasons": dict(self.suppression_reasons),
+                "lane_quality_coverage": round(
+                    self.lane_eligible_frames / max(self.lane_frames, 1), 4
+                ),
                 "latencies": latencies,
             }
-

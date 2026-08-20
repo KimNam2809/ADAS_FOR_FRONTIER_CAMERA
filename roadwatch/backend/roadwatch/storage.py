@@ -37,12 +37,21 @@ class Storage:
                     event_type TEXT NOT NULL,
                     severity TEXT NOT NULL,
                     message TEXT NOT NULL,
+                    display_message TEXT,
+                    spoken_message TEXT,
                     confidence REAL NOT NULL,
                     risk_score REAL NOT NULL,
                     object_id INTEGER,
                     location TEXT,
                     evidence_json TEXT NOT NULL,
-                    audio_action TEXT NOT NULL
+                    audio_action TEXT NOT NULL,
+                    event_uuid TEXT,
+                    frame_id INTEGER,
+                    source_time REAL,
+                    expires_at REAL,
+                    lifecycle_status TEXT NOT NULL DEFAULT 'accepted',
+                    audio_status TEXT NOT NULL DEFAULT 'not_requested',
+                    suppression_reason TEXT
                 );
                 CREATE TABLE IF NOT EXISTS audit_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,7 +63,28 @@ class Storage:
                 );
                 """
             )
+            self._migrate_events()
         self.seed_demo_users()
+
+    def _migrate_events(self) -> None:
+        existing = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(events)").fetchall()
+        }
+        additions = {
+            "event_uuid": "TEXT",
+            "frame_id": "INTEGER",
+            "source_time": "REAL",
+            "expires_at": "REAL",
+            "lifecycle_status": "TEXT NOT NULL DEFAULT 'accepted'",
+            "audio_status": "TEXT NOT NULL DEFAULT 'not_requested'",
+            "suppression_reason": "TEXT",
+            "display_message": "TEXT",
+            "spoken_message": "TEXT",
+        }
+        for name, sql_type in additions.items():
+            if name not in existing:
+                self._connection.execute(f"ALTER TABLE events ADD COLUMN {name} {sql_type}")
 
     def seed_demo_users(self) -> None:
         for username, password, role in (
@@ -85,24 +115,44 @@ class Storage:
             cursor = self._connection.execute(
                 """
                 INSERT INTO events(
-                    created_at, event_type, severity, message, confidence, risk_score,
-                    object_id, location, evidence_json, audio_action
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    created_at, event_type, severity, message, display_message, spoken_message,
+                    confidence, risk_score,
+                    object_id, location, evidence_json, audio_action, event_uuid, frame_id,
+                    source_time, expires_at, lifecycle_status, audio_status, suppression_reason
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     event["created_at"],
                     event["event_type"],
                     event["severity"],
                     event["message"],
+                    event.get("display_message", event["message"]),
+                    event.get("spoken_message", event["message"]),
                     event["confidence"],
                     event["risk_score"],
                     event.get("object_id"),
                     event.get("location"),
                     json.dumps(event.get("evidence", {}), ensure_ascii=False),
                     event.get("audio_action", "none"),
+                    event.get("event_id"),
+                    event.get("frame_id"),
+                    event.get("source_time"),
+                    event.get("expires_at"),
+                    event.get("lifecycle_status", "accepted"),
+                    event.get("audio_status", "not_requested"),
+                    event.get("suppression_reason"),
                 ),
             )
             return int(cursor.lastrowid)
+
+    def update_event_audio(
+        self, event_uuid: str, audio_status: str, reason: str | None = None
+    ) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                "UPDATE events SET audio_status = ?, suppression_reason = COALESCE(?, suppression_reason) WHERE event_uuid = ?",
+                (audio_status, reason, event_uuid),
+            )
 
     def list_events(self, limit: int = 100) -> list[dict[str, Any]]:
         safe_limit = max(1, min(int(limit), 500))
@@ -148,4 +198,3 @@ class Storage:
     def close(self) -> None:
         with self._lock:
             self._connection.close()
-

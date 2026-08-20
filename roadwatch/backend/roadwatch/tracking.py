@@ -6,6 +6,17 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+SEMANTIC_FAMILIES = {
+    "rider": "two_wheeler",
+    "bicycle": "two_wheeler",
+    "motorcycle": "two_wheeler",
+}
+
+
+def semantic_family(label: str) -> str:
+    return SEMANTIC_FAMILIES.get(label, label)
+
+
 def bbox_iou(a: list[float], b: list[float]) -> float:
     x1, y1 = max(a[0], b[0]), max(a[1], b[1])
     x2, y2 = min(a[2], b[2]), min(a[3], b[3])
@@ -27,6 +38,16 @@ class Track:
     hits: int = 1
     missed: int = 0
     history: deque[tuple[float, list[float]]] = field(default_factory=lambda: deque(maxlen=12))
+    label_votes: dict[str, float] = field(default_factory=dict)
+
+    def predicted_bbox(self) -> list[float]:
+        if len(self.history) < 2:
+            return list(self.bbox)
+        _, old = self.history[-2]
+        _, new = self.history[-1]
+        dx = ((new[0] + new[2]) - (old[0] + old[2])) * 0.5
+        dy = ((new[1] + new[3]) - (old[1] + old[3])) * 0.5
+        return [new[0] + dx, new[1] + dy, new[2] + dx, new[3] + dy]
 
     def update(self, detection: dict[str, Any], timestamp: float) -> None:
         self.bbox = detection["bbox"]
@@ -35,11 +56,22 @@ class Track:
         self.hits += 1
         self.missed = 0
         self.history.append((timestamp, list(self.bbox)))
+        label = str(detection["label"])
+        self.label_votes[label] = self.label_votes.get(label, 0.0) + float(
+            detection["confidence"]
+        )
+        stable_label = max(self.label_votes, key=self.label_votes.get)
+        self.label = stable_label
+        if stable_label == label:
+            self.class_id = int(detection["class_id"])
 
     def motion(self, frame_width: int) -> tuple[float, float]:
         if len(self.history) < 2:
             return 0.0, 0.0
-        old_t, old_box = self.history[0]
+        # Use a short temporal window. A full-track average hides the abrupt
+        # expansion/lateral motion that matters during braking and cut-ins.
+        recent = list(self.history)[-5:]
+        old_t, old_box = recent[0]
         new_t, new_box = self.history[-1]
         dt = max(new_t - old_t, 1e-3)
         # Short tracks are dominated by detector-box jitter. Do not turn that
@@ -63,6 +95,7 @@ class IoUTracker:
         self.max_missed = int(config["max_missed"])
         self.confirmation_hits = int(config["confirmation_hits"])
         self.history_size = int(config["history_size"])
+        self.semantic_family_matching = bool(config.get("semantic_family_matching", True))
         self._next_id = 1
         self._tracks: dict[int, Track] = {}
 
@@ -78,10 +111,26 @@ class IoUTracker:
         candidates: list[tuple[float, int, int]] = []
         for track_id, track in self._tracks.items():
             for index, detection in enumerate(detections):
-                if track.class_id == int(detection["class_id"]):
-                    score = bbox_iou(track.bbox, detection["bbox"])
+                same_class = track.class_id == int(detection["class_id"])
+                same_family = (
+                    self.semantic_family_matching
+                    and semantic_family(track.label)
+                    == semantic_family(str(detection["label"]))
+                )
+                if same_class or same_family:
+                    score = bbox_iou(track.predicted_bbox(), detection["bbox"])
                     if score >= self.iou_threshold:
                         candidates.append((score, track_id, index))
+                    else:
+                        predicted = track.predicted_bbox()
+                        pcx = (predicted[0] + predicted[2]) * 0.5
+                        pcy = (predicted[1] + predicted[3]) * 0.5
+                        box = detection["bbox"]
+                        dcx = (box[0] + box[2]) * 0.5
+                        dcy = (box[1] + box[3]) * 0.5
+                        distance = math.hypot(dcx - pcx, dcy - pcy) / max(frame_width, 1)
+                        if distance <= 0.08:
+                            candidates.append((0.15 - distance, track_id, index))
         for _, track_id, index in sorted(candidates, reverse=True):
             if track_id not in unmatched_tracks or index not in unmatched_detections:
                 continue
@@ -106,6 +155,7 @@ class IoUTracker:
                 first_seen=timestamp,
                 last_seen=timestamp,
                 history=deque(maxlen=self.history_size),
+                label_votes={str(detection["label"]): float(detection["confidence"])},
             )
             track.history.append((timestamp, list(track.bbox)))
             self._tracks[self._next_id] = track

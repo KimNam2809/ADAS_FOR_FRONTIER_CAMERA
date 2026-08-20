@@ -1,0 +1,20 @@
+{
+  "id": "lekimnam/roadwatch-dataset-quality-gate",
+  "title": "RoadWatch Dataset Quality Gate",
+  "code_file": "roadwatch_quality_gate.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "false",
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "a7madmostafa/bdd100k-yolo",
+    "mingshen0118/bard-vehicle-detection",
+    "orvile/dawn-detection-in-adverse-weather-nature"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
+

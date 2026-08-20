@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "target_taxonomy": ["fallen_person", "fallen_rider"],
+  "sources": [
+    {
+      "slug": "simuletic/cctv-incident-dataset-fall-and-lying-down-detection",
+      "license": "CC BY-NC-SA 4.0",
+      "status": "pretraining_only",
+      "reason": "Overhead/fixed CCTV domain and mostly positive laying samples; not representative of a moving dashcam.",
+      "quality_gate_evidence": {
+        "kaggle_kernel": "lekimnam/roadwatch-fallen-rider-quality-gate",
+        "kernel_version": 1,
+        "images_train": 111,
+        "images_val": 111,
+        "train_val_sha256_duplicates": 111,
+        "instances": {"laying": 222, "standing": 20},
+        "negative_images": 0,
+        "passed": false
+      }
+    },
+    {
+      "slug": "nardengerges/accident-no-accident-detection",
+      "license": "unknown",
+      "status": "quarantined",
+      "reason": "Scene-level accident labels do not localize a fallen rider, and the published license is unknown."
+    }
+  ],
+  "required_target_dataset": {
+    "name": "roadwatch-fallen-rider-dashcam",
+    "viewpoint": "forward-facing dashcam",
+    "classes": ["fallen_person", "fallen_rider"],
+    "minimum_instances_per_class": 250,
+    "negative_to_positive_image_ratio_min": 2.0,
+    "night_or_adverse_fraction_min": 0.2,
+    "split_rule": "group by original video before frame extraction"
+  },
+  "locked_regression_media": [
+    "test_video1.mp4",
+    "test_video2.mp4",
+    "test_video10.mp4",
+    "test_video11.mp4",
+    "video_test.mp4"
+  ]
+}

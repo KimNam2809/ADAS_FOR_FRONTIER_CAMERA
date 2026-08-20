@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import math
-import re
 import time
 from collections import defaultdict
 from typing import Any
 
+import cv2
 import numpy as np
+
+from .tracking import bbox_iou, semantic_family
+from .signs import policy_for_label, speed_value
 
 
 VI_LABELS = {
     "person": "Người đi bộ",
+    "rider": "Người đi xe hai bánh",
     "bicycle": "Xe đạp",
     "motorcycle": "Xe máy",
     "car": "Ô tô",
@@ -66,11 +70,29 @@ class RiskEngine:
         self._ldw_streak = 0
         self._sign_hits: dict[int, int] = defaultdict(int)
         self._sign_last_seen: dict[int, float] = {}
+        self._sign_first_seen: dict[int, float] = {}
+        self._sign_first_bbox: dict[int, list[float]] = {}
+        self._sign_last_bbox: dict[int, list[float]] = {}
+        self._active_speed_class: int | None = None
+        self._braking_streak: dict[int, int] = defaultdict(int)
+        self._lane_offset_ema: float | None = None
+        self._fcw_armed: dict[int, bool] = defaultdict(lambda: True)
+        self._fcw_last_severity: dict[int, str] = {}
+        self.last_sign_trace: list[dict[str, Any]] = []
 
     def reset(self) -> None:
         self._ldw_streak = 0
         self._sign_hits.clear()
         self._sign_last_seen.clear()
+        self._sign_first_seen.clear()
+        self._sign_first_bbox.clear()
+        self._sign_last_bbox.clear()
+        self._active_speed_class = None
+        self._braking_streak.clear()
+        self._lane_offset_ema = None
+        self._fcw_armed.clear()
+        self._fcw_last_severity.clear()
+        self.last_sign_trace = []
 
     def analyze(
         self,
@@ -79,6 +101,8 @@ class RiskEngine:
         lane_output: dict[str, Any],
         frame_shape: tuple[int, int],
         sign_fresh: bool,
+        frame: np.ndarray | None = None,
+        timestamp: float | None = None,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
         height, width = frame_shape
         lane = _fit_ego_lane(lane_output["lane_mask"])
@@ -87,6 +111,18 @@ class RiskEngine:
         lane["quality"] = round(
             min(lane["geometry_quality"], lane["segmentation_quality"]), 4
         )
+        if lane["quality"] >= float(self.config["lane_quality_min"]):
+            alpha = float(self.config.get("lane_offset_smoothing_alpha", 0.35))
+            raw_offset = float(lane["offset"])
+            self._lane_offset_ema = (
+                raw_offset
+                if self._lane_offset_ema is None
+                else alpha * raw_offset + (1.0 - alpha) * self._lane_offset_ema
+            )
+            lane["raw_offset"] = round(raw_offset, 4)
+            lane["offset"] = round(self._lane_offset_ema, 4)
+        else:
+            self._lane_offset_ema = None
         drivable = lane_output["drivable_mask"]
         candidates: list[dict[str, Any]] = []
         enriched: list[dict[str, Any]] = []
@@ -112,6 +148,7 @@ class RiskEngine:
             elif x_norm > 0.60:
                 location = "phía trước bên phải"
             proximity = _clamp((y2 / height - 0.38) / 0.58)
+            box_width_ratio = max(0.0, float(x2 - x1)) / max(width, 1)
             center_score = _clamp(1.0 - abs(x_norm - 0.5) * 2.2)
             approach = _clamp(float(track["expansion_rate"]) * 2.5)
             stability = _clamp(float(track["hits"]) / max(self.tracking_config["confirmation_hits"], 1))
@@ -124,6 +161,37 @@ class RiskEngine:
                 + 0.10 * float(track["confidence"])
             ) * stability
             risk = _clamp(risk)
+            lane_reliable = lane["quality"] >= float(self.config["lane_quality_min"])
+            broad_road_zone = 0.12 <= x_norm <= 0.92 and y2 >= height * 0.50
+            near_field_vehicle = (
+                track["label"] in {"car", "bus", "truck", "motorcycle", "bicycle", "rider"}
+                and broad_road_zone
+                and proximity >= float(self.config.get("near_field_proximity", 0.48))
+                and (
+                    approach >= float(self.config.get("near_field_approach_min", 0.015))
+                    or abs(float(track["lateral_velocity"]))
+                    >= float(self.config.get("near_field_lateral_min", 0.018))
+                    or box_width_ratio >= float(self.config.get("near_field_width_ratio", 0.18))
+                )
+            )
+            near_field_imminent = near_field_vehicle and (
+                approach >= float(self.config.get("near_field_critical_approach", 0.12))
+                or (
+                    proximity >= float(self.config.get("near_field_critical_proximity", 0.58))
+                    and moving_toward_center_hint(x_norm, float(track["lateral_velocity"]))
+                )
+            )
+            if near_field_imminent:
+                risk = max(risk, 0.82)
+            elif near_field_vehicle:
+                risk = max(risk, 0.64)
+            track_id = int(track["track_id"])
+            rearm_below = float(self.config["fcw_warning"]) - float(
+                self.config.get("fcw_rearm_hysteresis", 0.08)
+            )
+            if risk < rearm_below:
+                self._fcw_armed[track_id] = True
+                self._fcw_last_severity.pop(track_id, None)
             item = {
                 **track,
                 "location": location,
@@ -132,6 +200,9 @@ class RiskEngine:
                 "risk_score": round(risk, 4),
                 "proximity_score": round(proximity, 4),
                 "approaching_score": round(approach, 4),
+                "near_field_threat": near_field_vehicle,
+                "near_field_imminent": near_field_imminent,
+                "box_width_ratio": round(box_width_ratio, 4),
             }
             enriched.append(item)
 
@@ -144,26 +215,43 @@ class RiskEngine:
                 "on_drivable": on_drivable,
                 "expansion_rate": track["expansion_rate"],
                 "lane_quality": lane["quality"],
+                "near_field_threat": near_field_vehicle,
+                "near_field_imminent": near_field_imminent,
+                "box_width_ratio": round(box_width_ratio, 4),
                 "method": "image-space risk; không phải TTC theo mét",
             }
+            if track.get("metric_ttc_available"):
+                evidence.update(
+                    {
+                        "distance_m": track.get("distance_m"),
+                        "closing_speed_mps": track.get("closing_speed_mps"),
+                        "ttc_seconds": track.get("ttc_seconds"),
+                        "metric_ttc_confidence": track.get("metric_ttc_confidence"),
+                        "metric_ttc_role": "telemetry_only; chưa dùng để kích hoạt cảnh báo",
+                    }
+                )
             label_vi = VI_LABELS.get(track["label"], track["label"])
+            critical_now = (
+                risk >= float(self.config["fcw_critical"])
+                and track["confidence"] >= float(self.config["critical_confidence_min"])
+            )
+            allow_fcw = self._fcw_armed[track_id] or (
+                critical_now and self._fcw_last_severity.get(track_id) != "critical"
+            )
             if (
-                track["label"] in {"car", "bus", "truck", "motorcycle", "bicycle"}
-                and in_ego_lane
+                track["label"] in {"car", "bus", "truck", "motorcycle", "bicycle", "rider"}
+                and (in_ego_lane or near_field_vehicle)
                 and (
                     on_drivable
-                    or lane["quality"] >= float(self.config["lane_quality_min"])
+                    or lane_reliable
+                    or near_field_vehicle
                 )
                 and proximity >= 0.12
                 and float(track["age_seconds"]) >= 0.40
                 and risk >= float(self.config["fcw_warning"])
+                and allow_fcw
             ):
-                severity = (
-                    "critical"
-                    if risk >= float(self.config["fcw_critical"])
-                    and track["confidence"] >= float(self.config["critical_confidence_min"])
-                    else "warning"
-                )
+                severity = "critical" if critical_now else "warning"
                 candidates.append(
                     self._candidate(
                         "fcw",
@@ -173,12 +261,60 @@ class RiskEngine:
                         evidence,
                     )
                 )
-            elif (
-                track["label"] in {"person", "motorcycle", "bicycle"}
-                and on_drivable
+                self._fcw_armed[track_id] = False
+                self._fcw_last_severity[track_id] = severity
+
+            if (
+                frame is not None
+                and bool(self.config.get("enable_brake_light_heuristic", False))
+                and track["label"] in {"car", "bus", "truck"}
+                and (in_ego_lane or near_field_vehicle)
+                and float(track["age_seconds"]) >= 0.40
+            ):
+                brake_score = self._brake_light_score(frame, track["bbox"])
+                if brake_score >= float(self.config.get("brake_light_score_min", 0.42)):
+                    self._braking_streak[int(track["track_id"])] += 1
+                else:
+                    self._braking_streak[int(track["track_id"])] = max(
+                        0, self._braking_streak[int(track["track_id"])] - 1
+                    )
+                if self._braking_streak[int(track["track_id"])] >= int(
+                    self.config.get("lead_braking_confirmation_frames", 3)
+                ):
+                    braking_evidence = {**evidence, "brake_light_score": round(brake_score, 4)}
+                    candidates.append(
+                        self._candidate(
+                            "lead_vehicle_braking",
+                            "warning",
+                            f"{label_vi} phía trước đang giảm tốc. Hãy chú ý.",
+                            item,
+                            braking_evidence,
+                        )
+                    )
+            vulnerable_fallback = (
+                not lane_reliable
+                and broad_road_zone
+                and proximity
+                >= float(self.config.get("vulnerable_near_field_proximity", 0.18))
+                and (
+                    0.28 <= x_norm <= 0.72
+                    or abs(float(track["lateral_velocity"]))
+                    >= float(self.config.get("vulnerable_lateral_override", 0.05))
+                )
+            )
+            if (
+                track["label"] in {"person", "rider", "motorcycle", "bicycle"}
+                and (
+                    on_drivable
+                    or in_ego_lane
+                    or vulnerable_fallback
+                )
                 and proximity >= 0.10
                 and float(track["age_seconds"]) >= 0.40
-                and risk >= float(self.config["vulnerable_warning"])
+                and (
+                    risk >= float(self.config["vulnerable_warning"])
+                    or vulnerable_fallback
+                )
             ):
                 candidates.append(
                     self._candidate(
@@ -195,10 +331,13 @@ class RiskEngine:
             )
             if (
                 not in_ego_lane
-                and on_drivable
+                and (on_drivable or not lane_reliable)
                 and float(track["age_seconds"]) >= 0.50
                 and moving_toward_center
-                and risk >= float(self.config["cut_in_warning"])
+                and (
+                    risk >= float(self.config["cut_in_warning"])
+                    or proximity >= float(self.config.get("cut_in_proximity_override", 0.30))
+                )
             ):
                 candidates.append(
                     self._candidate(
@@ -207,6 +346,25 @@ class RiskEngine:
                         f"{label_vi} {location} có xu hướng nhập làn.",
                         item,
                         evidence,
+                    )
+                )
+
+            lateral_min = float(self.config.get("cross_traffic_lateral_min", 0.028))
+            if (
+                track["label"] in {"person", "rider", "motorcycle", "bicycle"}
+                and (on_drivable or not lane_reliable)
+                and not in_ego_lane
+                and abs(float(track["lateral_velocity"])) >= lateral_min
+                and proximity >= 0.08
+                and float(track["age_seconds"]) >= 0.40
+            ):
+                candidates.append(
+                    self._candidate(
+                        "cross_traffic",
+                        "warning",
+                        f"{label_vi} đang cắt ngang {location}. Hãy chú ý.",
+                        item,
+                        {**evidence, "lateral_velocity": track["lateral_velocity"]},
                     )
                 )
 
@@ -239,41 +397,271 @@ class RiskEngine:
             self._ldw_streak = 0
 
         if sign_fresh:
-            now = time.time()
-            visible_ids = set()
+            now = time.monotonic() if timestamp is None else float(timestamp)
+            visible_ids: set[int] = set()
+            best_by_class: dict[int, tuple[dict[str, Any], Any, float]] = {}
+            trace: list[dict[str, Any]] = []
             for sign in signs:
                 class_id = int(sign["class_id"])
+                policy = policy_for_label(str(sign["label"]))
+                visual_score = self._speed_sign_visual_score(frame, sign["bbox"])
+                geometry_ok = self._valid_traffic_sign_geometry(
+                    sign["bbox"],
+                    frame_shape,
+                    speed=bool(policy and policy.require_red_ring),
+                    visual_score=visual_score,
+                    classifier_confidence=float(sign.get("speed_classifier_confidence", 0.0)),
+                )
+                reason = "eligible"
+                if policy is None:
+                    reason = "hud_only_unmapped"
+                elif not geometry_ok:
+                    reason = "geometry_gate"
+                trace.append(
+                    {
+                        "class_id": class_id,
+                        "label": sign["label"],
+                        "confidence": sign["confidence"],
+                        "bbox": sign["bbox"],
+                        "policy": None if policy is None else policy.kind,
+                        "geometry_ok": geometry_ok,
+                        "visual_red_ring_score": round(visual_score, 4),
+                        "decision": reason,
+                    }
+                )
+                if policy is None or not geometry_ok:
+                    continue
+                previous = best_by_class.get(class_id)
+                if previous is None or float(sign["confidence"]) > float(previous[0]["confidence"]):
+                    best_by_class[class_id] = (sign, policy, visual_score)
+
+            for class_id, (sign, policy, visual_score) in best_by_class.items():
                 visible_ids.add(class_id)
-                self._sign_hits[class_id] += 1
+                stable_box = (
+                    class_id in self._sign_last_bbox
+                    and bbox_iou(self._sign_last_bbox[class_id], sign["bbox"])
+                    >= float(self.config.get("traffic_sign_tracking_iou_min", 0.25))
+                )
+                if not stable_box:
+                    self._sign_hits[class_id] = 1
+                    self._sign_first_seen[class_id] = now
+                    self._sign_first_bbox[class_id] = list(sign["bbox"])
+                else:
+                    self._sign_hits[class_id] += 1
                 self._sign_last_seen[class_id] = now
-                match = re.search(r"Speed limit (\d+)km/h", sign["label"])
-                if match and self._sign_hits[class_id] >= int(
-                    self.config["speed_sign_confirmation_hits"]
-                ):
-                    speed = int(match.group(1))
+                self._sign_last_bbox[class_id] = list(sign["bbox"])
+                confirmed_duration = now - self._sign_first_seen.get(class_id, now)
+                sign_motion = self._bbox_motion_score(
+                    self._sign_first_bbox.get(class_id, sign["bbox"]), sign["bbox"]
+                )
+                red_required = bool(policy.require_red_ring) and bool(
+                    self.config.get("speed_sign_visual_validation", True)
+                )
+                red_ok = (
+                    frame is None
+                    or not red_required
+                    or visual_score >= float(self.config.get("speed_sign_red_ring_min", 0.018))
+                )
+                # A moving, temporally stable high-confidence box is a safe
+                # fallback for tiny/compressed signs whose red border loses
+                # saturation. This replaces the old hard motion gate, which
+                # rejected real signs that stayed nearly stationary.
+                compressed_sign_fallback = (
+                    float(sign["confidence"])
+                    >= float(self.config.get("speed_sign_fallback_confidence", 0.72))
+                    and sign_motion >= float(self.config.get("speed_sign_fallback_motion_min", 0.035))
+                )
+                visual_ok = red_ok or compressed_sign_fallback
+                hits_required = int(
+                    self.config.get(
+                        "speed_sign_confirmation_hits" if policy.require_red_ring else "traffic_sign_confirmation_hits",
+                        3,
+                    )
+                )
+                seconds_required = float(
+                    self.config.get(
+                        "speed_sign_confirmation_seconds" if policy.require_red_ring else "traffic_sign_confirmation_seconds",
+                        0.25,
+                    )
+                )
+                confirmed = (
+                    self._sign_hits[class_id] >= hits_required
+                    and confirmed_duration >= seconds_required
+                    and visual_ok
+                )
+                for item in trace:
+                    if item["class_id"] == class_id and item["bbox"] == sign["bbox"]:
+                        item.update(
+                            {
+                                "hits": self._sign_hits[class_id],
+                                "confirmation_seconds": round(confirmed_duration, 3),
+                                "screen_motion_score": round(sign_motion, 4),
+                                "visual_ok": visual_ok,
+                                "decision": "confirmed" if confirmed else "temporal_or_visual_gate",
+                            }
+                        )
+                if confirmed:
+                    speed = speed_value(str(sign["label"]))
+                    event_type = "speed_sign" if speed is not None else "traffic_sign"
                     candidates.append(
                         {
-                            "event_type": "speed_sign",
-                            "severity": "advisory",
-                            "message": f"Đã nhận diện biển giới hạn tốc độ {speed} ki-lô-mét một giờ.",
+                            "event_type": event_type,
+                            "severity": policy.severity,
+                            "message": policy.message,
                             "confidence": sign["confidence"],
-                            "risk_score": 0.25,
+                            "risk_score": policy.risk_score,
                             "object_id": None,
                             "location": "phía trước",
-                            "cooldown_key": f"speed_sign:{speed}",
+                            "cooldown_key": (
+                                f"speed_sign:{speed}"
+                                if speed is not None
+                                else f"traffic_sign:{class_id}"
+                            ),
+                            "is_traffic_sign": True,
+                            "audio_eligible": policy.audio_eligible,
                             "evidence": {
                                 "class_id": class_id,
+                                "speed_value": speed,
+                                "sign_kind": policy.kind,
                                 "label": sign["label"],
                                 "hits": self._sign_hits[class_id],
                                 "bbox": sign["bbox"],
+                                "visual_red_ring_score": round(visual_score, 4),
+                                "confirmation_seconds": round(confirmed_duration, 3),
+                                "screen_motion_score": round(sign_motion, 4),
+                                "state": "confirmed",
                             },
                         }
                     )
+            self.last_sign_trace = trace[-20:]
             for class_id in list(self._sign_hits):
                 if class_id not in visible_ids and now - self._sign_last_seen[class_id] > 2.0:
                     self._sign_hits[class_id] = 0
 
         return candidates, enriched, lane
+
+    def _valid_speed_sign_geometry(
+        self,
+        bbox: list[float],
+        frame_shape: tuple[int, int],
+        visual_score: float = 0.0,
+        classifier_confidence: float = 0.0,
+    ) -> bool:
+        height, width = frame_shape
+        x1, y1, x2, y2 = bbox
+        box_width = max(0.0, x2 - x1)
+        box_height = max(0.0, y2 - y1)
+        area_ratio = box_width * box_height / max(width * height, 1)
+        aspect = box_width / max(box_height, 1e-6)
+        regular_area = area_ratio <= float(self.config.get("speed_sign_max_area_ratio", 0.025))
+        close_sign_evidence = (
+            area_ratio <= float(self.config.get("speed_sign_close_max_area_ratio", 0.06))
+            and visual_score >= float(self.config.get("speed_sign_close_red_ring_min", 0.08))
+            and classifier_confidence
+            >= float(self.config.get("speed_sign_close_classifier_confidence_min", 0.90))
+        )
+        return (
+            float(self.config.get("speed_sign_min_area_ratio", 0.00008)) <= area_ratio
+            and (regular_area or close_sign_evidence)
+            and float(self.config.get("speed_sign_aspect_min", 0.55)) <= aspect
+            <= float(self.config.get("speed_sign_aspect_max", 1.55))
+            and y2 <= height * float(self.config.get("speed_sign_max_bottom_ratio", 0.82))
+        )
+
+    def _valid_traffic_sign_geometry(
+        self,
+        bbox: list[float],
+        frame_shape: tuple[int, int],
+        speed: bool = False,
+        visual_score: float = 0.0,
+        classifier_confidence: float = 0.0,
+    ) -> bool:
+        if speed:
+            return self._valid_speed_sign_geometry(
+                bbox,
+                frame_shape,
+                visual_score=visual_score,
+                classifier_confidence=classifier_confidence,
+            )
+        height, width = frame_shape
+        x1, y1, x2, y2 = bbox
+        box_width = max(0.0, x2 - x1)
+        box_height = max(0.0, y2 - y1)
+        area_ratio = box_width * box_height / max(width * height, 1)
+        aspect = box_width / max(box_height, 1e-6)
+        return (
+            float(self.config.get("traffic_sign_min_area_ratio", 0.00006)) <= area_ratio
+            <= float(self.config.get("traffic_sign_max_area_ratio", 0.06))
+            and float(self.config.get("traffic_sign_aspect_min", 0.32)) <= aspect
+            <= float(self.config.get("traffic_sign_aspect_max", 2.4))
+            and y2 <= height * float(self.config.get("traffic_sign_max_bottom_ratio", 0.90))
+        )
+
+    @staticmethod
+    def _speed_sign_visual_score(frame: np.ndarray | None, bbox: list[float]) -> float:
+        """Estimate red-border evidence used by Vietnamese circular speed signs."""
+        if frame is None:
+            return 1.0
+        height, width = frame.shape[:2]
+        x1, y1, x2, y2 = [int(round(value)) for value in bbox]
+        pad_x = max(2, int((x2 - x1) * 0.08))
+        pad_y = max(2, int((y2 - y1) * 0.08))
+        x1, x2 = max(0, x1 - pad_x), min(width, x2 + pad_x)
+        y1, y2 = max(0, y1 - pad_y), min(height, y2 + pad_y)
+        roi = frame[y1:y2, x1:x2]
+        if roi.size == 0 or min(roi.shape[:2]) < 8:
+            return 0.0
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        red = ((hsv[:, :, 0] <= 10) | (hsv[:, :, 0] >= 170)) & (
+            hsv[:, :, 1] >= 70
+        ) & (hsv[:, :, 2] >= 60)
+        roi_h, roi_w = red.shape
+        yy, xx = np.ogrid[:roi_h, :roi_w]
+        nx = (xx - (roi_w - 1) / 2) / max(roi_w / 2, 1)
+        ny = (yy - (roi_h - 1) / 2) / max(roi_h / 2, 1)
+        radius = np.sqrt(nx * nx + ny * ny)
+        ring = (radius >= 0.55) & (radius <= 1.05)
+        return float(red[ring].mean()) if np.any(ring) else 0.0
+
+    @staticmethod
+    def _bbox_motion_score(first: list[float], current: list[float]) -> float:
+        first_width = max(first[2] - first[0], 1.0)
+        first_height = max(first[3] - first[1], 1.0)
+        first_cx = (first[0] + first[2]) * 0.5
+        first_cy = (first[1] + first[3]) * 0.5
+        current_cx = (current[0] + current[2]) * 0.5
+        current_cy = (current[1] + current[3]) * 0.5
+        displacement = math.hypot(
+            (current_cx - first_cx) / first_width,
+            (current_cy - first_cy) / first_height,
+        )
+        first_area = first_width * first_height
+        current_area = max((current[2] - current[0]) * (current[3] - current[1]), 1.0)
+        scale_change = abs(math.log(current_area / first_area))
+        return float(displacement + scale_change)
+
+    @staticmethod
+    def _brake_light_score(frame: np.ndarray, bbox: list[float]) -> float:
+        """Conservative paired-red-lamp cue; experimental, not a braking ground truth."""
+        height, width = frame.shape[:2]
+        x1, y1, x2, y2 = [int(v) for v in bbox]
+        x1, x2 = max(0, x1), min(width, x2)
+        y1, y2 = max(0, y1), min(height, y2)
+        if x2 - x1 < 24 or y2 - y1 < 18:
+            return 0.0
+        roi = frame[y1 + int((y2 - y1) * 0.35): y1 + int((y2 - y1) * 0.82), x1:x2]
+        if roi.size == 0:
+            return 0.0
+        blue, green, red = [roi[:, :, index].astype(np.float32) for index in range(3)]
+        red_mask = (red > 150) & (red > green * 1.35) & (red > blue * 1.25)
+        midpoint = red_mask.shape[1] // 2
+        if midpoint < 1:
+            return 0.0
+        left_ratio = float(red_mask[:, :midpoint].mean())
+        right_ratio = float(red_mask[:, midpoint:].mean())
+        paired = min(left_ratio, right_ratio)
+        coverage = float(red_mask.mean())
+        return _clamp(paired * 18.0 + coverage * 4.0)
 
     @staticmethod
     def _candidate(
@@ -291,6 +679,17 @@ class RiskEngine:
             "risk_score": track["risk_score"],
             "object_id": track["track_id"],
             "location": track["location"],
-            "cooldown_key": f"{event_type}:{track['track_id']}",
+            # Track IDs fragment under occlusion and scene cuts. Hazard-region
+            # cooldown prevents the same physical threat being announced again
+            # merely because the tracker assigned a new ID.
+            "cooldown_key": (
+                f"{event_type}:{semantic_family(str(track['label']))}:{track['location']}"
+            ),
             "evidence": evidence,
         }
+
+
+def moving_toward_center_hint(x_norm: float, lateral_velocity: float) -> bool:
+    return (x_norm < 0.5 and lateral_velocity > 0.018) or (
+        x_norm > 0.5 and lateral_velocity < -0.018
+    )
