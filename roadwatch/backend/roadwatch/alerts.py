@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections import defaultdict, deque
 from typing import Any
+
+from .sign_arbitration import arbitrate_sign_candidates
 
 
 SEVERITY_RANK = {"informational": 0, "advisory": 1, "warning": 2, "critical": 3}
@@ -23,12 +26,14 @@ class AlertGovernor:
         self._last_by_key: dict[str, tuple[float, str]] = {}
         self._last_audio = float("-inf")
         self._pending_speed_sign: tuple[dict[str, Any], float] | None = None
+        self._audio_history_by_key: dict[str, deque[float]] = defaultdict(deque)
         self.last_suppressed: list[dict[str, Any]] = []
 
     def reset(self) -> None:
         self._last_by_key.clear()
         self._last_audio = float("-inf")
         self._pending_speed_sign = None
+        self._audio_history_by_key.clear()
         self.last_suppressed = []
 
     def decide(
@@ -55,9 +60,13 @@ class AlertGovernor:
                 # sign leaves the frame. Retain it briefly so a preceding FCW
                 # or sign announcement cannot silence it permanently.
                 candidates.append(pending)
+        candidates, sign_suppressed = arbitrate_sign_candidates(candidates)
         accepted: list[dict[str, Any]] = []
-        suppressed = 0
-        self.last_suppressed = []
+        suppressed = len(sign_suppressed)
+        self.last_suppressed = [
+            {**candidate, "lifecycle_status": "suppressed", "suppression_reason": "sign_family_arbitration"}
+            for candidate in sign_suppressed
+        ]
         # One object can satisfy several rules in the same frame. Keep the
         # most actionable sentence instead of creating competing banners.
         deduplicated: dict[tuple[str, Any], dict[str, Any]] = {}
@@ -71,12 +80,16 @@ class AlertGovernor:
             current = deduplicated.get(group)
             score = (
                 SEVERITY_RANK.get(candidate["severity"], 0),
-                EVENT_SPECIFICITY.get(candidate["event_type"], 0),
+                candidate.get(
+                    "event_priority", EVENT_SPECIFICITY.get(candidate["event_type"], 0)
+                ),
                 candidate["risk_score"],
             )
             if current is None or score > (
                 SEVERITY_RANK.get(current["severity"], 0),
-                EVENT_SPECIFICITY.get(current["event_type"], 0),
+                current.get(
+                    "event_priority", EVENT_SPECIFICITY.get(current["event_type"], 0)
+                ),
                 current["risk_score"],
             ):
                 deduplicated[group] = candidate
@@ -95,7 +108,12 @@ class AlertGovernor:
             )
         ordered = sorted(
             deduplicated.values(),
-            key=lambda item: (SEVERITY_RANK.get(item["severity"], 0), item["risk_score"]),
+            key=lambda item: (
+                SEVERITY_RANK.get(item["severity"], 0),
+                item.get("event_priority", EVENT_SPECIFICITY.get(item["event_type"], 0)),
+                item["risk_score"],
+                str(item.get("cooldown_key", "")),
+            ),
             reverse=True,
         )
         for candidate in ordered:
@@ -155,14 +173,35 @@ class AlertGovernor:
         if audio_candidates:
             winner = audio_candidates[0]
             audio_gap = float(self.config["global_audio_gap_seconds"])
+            budget_key = str(
+                winner.get("semantic_audio_key")
+                or winner.get("cooldown_key")
+                or winner["event_type"]
+            )
+            budget_window = float(self.config.get("advisory_audio_window_seconds", 60.0))
+            budget_max = int(self.config.get("advisory_audio_max_per_window", 3))
+            history = self._audio_history_by_key[budget_key]
+            while history and clock - history[0] >= budget_window:
+                history.popleft()
+            budget_available = len(history) < budget_max
             if winner["severity"] == "critical":
                 winner["audio_action"] = "beep_tts"
                 winner["audio_status"] = "queued"
                 self._last_audio = clock
+            elif not budget_available:
+                suppressed += 1
+                winner["audio_status"] = "suppressed"
+                winner["suppression_reason"] = "semantic_audio_budget"
+                self.last_suppressed.append({
+                    **winner,
+                    "lifecycle_status": "accepted",
+                    "suppression_reason": "semantic_audio_budget",
+                })
             elif clock - self._last_audio >= audio_gap:
                 winner["audio_action"] = "tts"
                 winner["audio_status"] = "queued"
                 self._last_audio = clock
+                history.append(clock)
                 if winner["event_type"] == "speed_sign":
                     self._pending_speed_sign = None
             else:

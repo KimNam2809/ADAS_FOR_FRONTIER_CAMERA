@@ -13,10 +13,12 @@ if hasattr(sys.stdout, "reconfigure"):
 sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 
 from roadwatch.config import ConfigManager, model_inventory  # noqa: E402
+from roadwatch.release import verify_release  # noqa: E402
 
 
 def main() -> int:
     config = ConfigManager().snapshot()
+    release = verify_release(config, verify_hashes=False)
     try:
         import onnxruntime as ort
 
@@ -36,6 +38,7 @@ def main() -> int:
         "python": platform.python_version(),
         "onnxruntime_providers": providers,
         "models": model_inventory(),
+        "release": release,
         "deployment_files": {
             name: (PROJECT_ROOT / name).exists()
             for name in (
@@ -53,6 +56,7 @@ def main() -> int:
             "validated_on_vehicle": False,
         },
         "gates": {
+            "release_manifest_valid": release["status"] == "pass",
             "metric_ttc_allowed": bool(calibration.get("calibrated", False)),
             "jetson_validated": False,
             "closed_course_validated": False,

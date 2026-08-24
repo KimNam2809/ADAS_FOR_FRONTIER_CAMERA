@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "task_id": "RW-10",
+  "generated_at": "2026-08-24T03:13:12.187380+00:00",
+  "status": "pending_human_review",
+  "training_blocked": true,
+  "queue_validation": {
+    "status": "pass",
+    "records": 599,
+    "unique_ids": 599,
+    "sources_by_split": {
+      "test": [
+        "dashcam_vietnam_rainnight.mp4"
+      ],
+      "val": [
+        "dashcam_vietnam_night.mp4"
+      ],
+      "train": [
+        "dashcam_vietnam.mp4",
+        "dashcam_vietnam_traffic_multi.mp4"
+      ]
+    },
+    "split_source_overlap": false,
+    "invalid_fields": [],
+    "pending_records": 599,
+    "candidate_records": 217,
+    "rejected_by_model_records": 382
+  },
+  "required_before_finetune": {
+    "verified_frames_min": 3000,
+    "double_review_frames_min": 300,
+    "night_verified_min": 500,
+    "rain_night_verified_min": 400,
+    "multi_lane_verified_min": 1000,
+    "faded_or_missing_marking_verified_min": 400,
+    "review_disagreement_max": 0.05
+  },
+  "human_action": "Fill ground_truth fields and review_status per record; do not copy model_proposal blindly."
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -52,7 +53,9 @@ def main() -> int:
         object_points, image_points, image_size, None, None
     )
     report = {
+        "schema_version": 1,
         "calibrated": True,
+        "camera_id": "front-camera-unassigned",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "image_size": list(image_size),
         "pattern_inner_corners": [args.columns, args.rows],
@@ -71,6 +74,9 @@ def main() -> int:
             "reason": "Closed-course distance/TTC validation is still mandatory",
         },
         "images": used,
+        "source_image_sha256": [
+            hashlib.sha256(Path(path).read_bytes()).hexdigest().upper() for path in used
+        ],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

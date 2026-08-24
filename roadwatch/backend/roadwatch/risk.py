@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import statistics
 import time
 from collections import defaultdict
 from typing import Any
@@ -49,7 +50,16 @@ def _fit_ego_lane(lane_mask: np.ndarray) -> dict[str, Any]:
     lane_width = right - left
     plausible = 0.22 * width <= lane_width <= 0.92 * width
     coverage = _clamp(len(rows) / 12.0)
-    quality = coverage if plausible else coverage * 0.25
+    if not plausible:
+        return {
+            "quality": 0.0,
+            "left": None,
+            "right": None,
+            "offset": 0.0,
+            "width_px": None,
+            "rejection_reason": "invalid_lane_boundary_order_or_width",
+        }
+    quality = coverage
     lane_center = (left + right) * 0.5
     offset = (center - lane_center) / max(lane_width * 0.5, 1.0)
     return {
@@ -78,6 +88,10 @@ class RiskEngine:
         self._lane_offset_ema: float | None = None
         self._fcw_armed: dict[int, bool] = defaultdict(lambda: True)
         self._fcw_last_severity: dict[int, str] = {}
+        self._critical_fcw_tracks: set[int] = set()
+        self._signal_streak: dict[tuple[int, str], int] = defaultdict(int)
+        self._signal_last_frame: dict[tuple[int, str], int] = {}
+        self._analysis_frame = 0
         self.last_sign_trace: list[dict[str, Any]] = []
 
     def reset(self) -> None:
@@ -92,6 +106,10 @@ class RiskEngine:
         self._lane_offset_ema = None
         self._fcw_armed.clear()
         self._fcw_last_severity.clear()
+        self._critical_fcw_tracks.clear()
+        self._signal_streak.clear()
+        self._signal_last_frame.clear()
+        self._analysis_frame = 0
         self.last_sign_trace = []
 
     def analyze(
@@ -104,6 +122,7 @@ class RiskEngine:
         frame: np.ndarray | None = None,
         timestamp: float | None = None,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+        self._analysis_frame += 1
         height, width = frame_shape
         lane = _fit_ego_lane(lane_output["lane_mask"])
         lane["geometry_quality"] = lane["quality"]
@@ -126,6 +145,26 @@ class RiskEngine:
         drivable = lane_output["drivable_mask"]
         candidates: list[dict[str, Any]] = []
         enriched: list[dict[str, Any]] = []
+        stable_lateral = [
+            float(track.get("lateral_velocity", 0.0))
+            for track in tracks
+            if track.get("confirmed") and int(track.get("motion_observations", 0)) >= 4
+        ]
+        # One or two tracks may themselves be the crossing threat. Treating
+        # their motion as ego-camera motion would cancel the signal entirely.
+        global_lateral_velocity = (
+            statistics.median(stable_lateral) if len(stable_lateral) >= 3 else 0.0
+        )
+        stable_displacements = [
+            float(track.get("displacement_x_norm", 0.0))
+            for track in tracks
+            if track.get("confirmed") and int(track.get("motion_observations", 0)) >= 4
+        ]
+        global_lateral_displacement = (
+            statistics.median(stable_displacements)
+            if len(stable_displacements) >= 3
+            else 0.0
+        )
 
         for track in tracks:
             x1, y1, x2, y2 = track["bbox"]
@@ -142,6 +181,36 @@ class RiskEngine:
                 in_ego_lane = 0.38 * width <= cx <= 0.62 * width
 
             x_norm = cx / width
+            relative_lateral = float(track["lateral_velocity"]) - global_lateral_velocity
+            relative_displacement = (
+                float(track.get("displacement_x_norm", 0.0))
+                - global_lateral_displacement
+            )
+            vertical_displacement = float(track.get("displacement_y_norm", 0.0))
+            motion_observations = int(track.get("motion_observations", 0))
+            # Instantaneous box velocity is useful for projection but flips
+            # under detector jitter. Direction wording and side-of-origin use
+            # the longer trajectory displacement whenever it is meaningful.
+            trajectory_lateral = (
+                relative_displacement
+                if abs(relative_displacement) >= 0.018
+                else relative_lateral
+            )
+            movement_direction = (
+                "left_to_right"
+                if trajectory_lateral > 0.005
+                else "right_to_left"
+                if trajectory_lateral < -0.005
+                else "longitudinal"
+            )
+            origin_x_norm = float(track.get("origin_x_norm", x_norm))
+            origin_side = (
+                "left"
+                if origin_x_norm < 0.45
+                else "right"
+                if origin_x_norm > 0.55
+                else "front"
+            )
             location = "phía trước"
             if x_norm < 0.40:
                 location = "phía trước bên trái"
@@ -151,6 +220,9 @@ class RiskEngine:
             box_width_ratio = max(0.0, float(x2 - x1)) / max(width, 1)
             center_score = _clamp(1.0 - abs(x_norm - 0.5) * 2.2)
             approach = _clamp(float(track["expansion_rate"]) * 2.5)
+            bbox_area_ratio = max(0.0, float(x2 - x1) * float(y2 - y1)) / max(
+                width * height, 1
+            )
             stability = _clamp(float(track["hits"]) / max(self.tracking_config["confirmation_hits"], 1))
             context = 1.0 if in_ego_lane else (0.65 if on_drivable else 0.2)
             risk = (
@@ -162,6 +234,21 @@ class RiskEngine:
             ) * stability
             risk = _clamp(risk)
             lane_reliable = lane["quality"] >= float(self.config["lane_quality_min"])
+            if lane_reliable:
+                corridor_left = max(0.05, left / width - 0.04)
+                corridor_right = min(0.95, right / width + 0.04)
+            else:
+                corridor_left, corridor_right = 0.30, 0.70
+            horizon = float(self.config.get("trajectory_horizon_seconds", 1.2))
+            projected_x_norm = _clamp(x_norm + relative_lateral * horizon)
+            path_conflict = (
+                corridor_left <= x_norm <= corridor_right
+                or corridor_left <= projected_x_norm <= corridor_right
+            )
+            path_conflict_relaxed = (
+                corridor_left - 0.08 <= x_norm <= corridor_right + 0.08
+                or corridor_left - 0.08 <= projected_x_norm <= corridor_right + 0.08
+            )
             broad_road_zone = 0.12 <= x_norm <= 0.92 and y2 >= height * 0.50
             near_field_vehicle = (
                 track["label"] in {"car", "bus", "truck", "motorcycle", "bicycle", "rider"}
@@ -169,7 +256,7 @@ class RiskEngine:
                 and proximity >= float(self.config.get("near_field_proximity", 0.48))
                 and (
                     approach >= float(self.config.get("near_field_approach_min", 0.015))
-                    or abs(float(track["lateral_velocity"]))
+                    or abs(relative_lateral)
                     >= float(self.config.get("near_field_lateral_min", 0.018))
                     or box_width_ratio >= float(self.config.get("near_field_width_ratio", 0.18))
                 )
@@ -178,10 +265,30 @@ class RiskEngine:
                 approach >= float(self.config.get("near_field_critical_approach", 0.12))
                 or (
                     proximity >= float(self.config.get("near_field_critical_proximity", 0.58))
-                    and moving_toward_center_hint(x_norm, float(track["lateral_velocity"]))
+                    and moving_toward_center_hint(x_norm, relative_lateral)
                 )
             )
-            if near_field_imminent:
+            # Monocular TTC becomes unreliable after ego braking has almost
+            # removed relative scale change. A large, persistent object in the
+            # ego corridor is therefore an image-space emergency fail-safe.
+            # It deliberately makes no claim about distance in metres.
+            emergency_near_field = (
+                track["label"] in {"car", "bus", "truck", "motorcycle", "bicycle", "rider"}
+                and (path_conflict or near_field_imminent)
+                and proximity
+                >= float(self.config.get("emergency_proximity_min", 0.74))
+                and box_width_ratio
+                >= float(self.config.get("emergency_width_ratio_min", 0.26))
+                and bbox_area_ratio
+                >= float(self.config.get("emergency_bbox_area_ratio_min", 0.16))
+                and float(track["confidence"])
+                >= float(self.config.get("emergency_confidence_min", 0.55))
+                and float(track["age_seconds"])
+                >= float(self.config.get("emergency_age_seconds_min", 0.40))
+            )
+            if emergency_near_field:
+                risk = max(risk, 0.96)
+            elif near_field_imminent:
                 risk = max(risk, 0.82)
             elif near_field_vehicle:
                 risk = max(risk, 0.64)
@@ -203,6 +310,15 @@ class RiskEngine:
                 "near_field_threat": near_field_vehicle,
                 "near_field_imminent": near_field_imminent,
                 "box_width_ratio": round(box_width_ratio, 4),
+                "bbox_area_ratio": round(bbox_area_ratio, 4),
+                "emergency_near_field": emergency_near_field,
+                "relative_lateral_velocity": round(relative_lateral, 4),
+                "relative_lateral_displacement": round(relative_displacement, 4),
+                "vertical_displacement": round(vertical_displacement, 4),
+                "trajectory_lateral": round(trajectory_lateral, 4),
+                "global_lateral_velocity": round(global_lateral_velocity, 4),
+                "projected_x_norm": round(projected_x_norm, 4),
+                "path_conflict": path_conflict,
             }
             enriched.append(item)
 
@@ -210,6 +326,7 @@ class RiskEngine:
                 continue
             evidence = {
                 "hits": track["hits"],
+                "object_label": track["label"],
                 "bbox": [round(float(v), 1) for v in track["bbox"]],
                 "in_ego_lane": in_ego_lane,
                 "on_drivable": on_drivable,
@@ -218,7 +335,30 @@ class RiskEngine:
                 "near_field_threat": near_field_vehicle,
                 "near_field_imminent": near_field_imminent,
                 "box_width_ratio": round(box_width_ratio, 4),
+                "bbox_area_ratio": round(bbox_area_ratio, 4),
+                "emergency_near_field": emergency_near_field,
+                "relative_lateral_velocity": round(relative_lateral, 4),
+                "relative_lateral_displacement": round(relative_displacement, 4),
+                "vertical_displacement": round(vertical_displacement, 4),
+                "trajectory_lateral": round(trajectory_lateral, 4),
+                "global_lateral_velocity": round(global_lateral_velocity, 4),
+                "projected_x_norm": round(projected_x_norm, 4),
+                "path_conflict": path_conflict,
+                "movement_direction": movement_direction,
+                "origin_side": origin_side,
                 "method": "image-space risk; không phải TTC theo mét",
+                "kinematics_space": "image_space",
+                "relative_scale_px": track.get("relative_scale_px"),
+                "relative_closing_rate_per_s": track.get(
+                    "relative_closing_rate_per_s"
+                ),
+                "relative_closing_acceleration_per_s2": track.get(
+                    "relative_closing_acceleration_per_s2"
+                ),
+                "relative_ttc_proxy_seconds": track.get(
+                    "relative_ttc_proxy_seconds"
+                ),
+                "relative_kinematics_role": "advisory_image_space_only",
             }
             if track.get("metric_ttc_available"):
                 evidence.update(
@@ -232,47 +372,113 @@ class RiskEngine:
                 )
             label_vi = VI_LABELS.get(track["label"], track["label"])
             critical_now = (
+                emergency_near_field
+                or (
                 risk >= float(self.config["fcw_critical"])
                 and track["confidence"] >= float(self.config["critical_confidence_min"])
+                and near_field_imminent
+                and (path_conflict or emergency_near_field)
+                and proximity >= float(self.config.get("critical_proximity_min", 0.65))
+                and approach >= float(self.config.get("critical_approach_min", 0.18))
+                and float(track["age_seconds"]) >= 0.75
+                )
             )
             allow_fcw = self._fcw_armed[track_id] or (
                 critical_now and self._fcw_last_severity.get(track_id) != "critical"
             )
             if (
                 track["label"] in {"car", "bus", "truck", "motorcycle", "bicycle", "rider"}
-                and (in_ego_lane or near_field_vehicle)
+                and (path_conflict or emergency_near_field)
                 and (
                     on_drivable
                     or lane_reliable
                     or near_field_vehicle
                 )
                 and proximity >= 0.12
+                and (
+                    box_width_ratio
+                    >= float(self.config.get("fcw_width_ratio_min", 0.18))
+                    or emergency_near_field
+                )
+                and (
+                    float(track.get("relative_closing_rate_per_s", 0.0))
+                    >= float(self.config.get("fcw_relative_rate_min", 0.20))
+                    or emergency_near_field
+                )
                 and float(track["age_seconds"]) >= 0.40
                 and risk >= float(self.config["fcw_warning"])
                 and allow_fcw
+                and self._confirmed_signal(
+                    track_id,
+                    "fcw",
+                    True,
+                    int(self.config.get("critical_confirmation_frames", 2))
+                    if critical_now
+                    else int(self.config.get("hazard_confirmation_frames", 3)),
+                )
             ):
                 severity = "critical" if critical_now else "warning"
                 candidates.append(
                     self._candidate(
                         "fcw",
                         severity,
-                        f"{label_vi} {location}, đang tiến gần. Hãy chú ý.",
+                        "Cảnh báo va chạm phía trước!"
+                        if emergency_near_field
+                        else f"{label_vi} {location}, đang tiến gần. Hãy chú ý.",
                         item,
-                        evidence,
+                        {
+                            **evidence,
+                            "confirmation_frames_required": int(
+                                self.config.get("critical_confirmation_frames", 2)
+                                if critical_now
+                                else self.config.get("hazard_confirmation_frames", 3)
+                            ),
+                            "single_frame_trigger": False,
+                            "trigger_path": (
+                                "image_space_emergency_override"
+                                if emergency_near_field
+                                else "relative_scale_fcw"
+                            ),
+                        },
                     )
                 )
                 self._fcw_armed[track_id] = False
                 self._fcw_last_severity[track_id] = severity
+                if severity == "critical":
+                    self._critical_fcw_tracks.add(track_id)
 
             if (
-                frame is not None
-                and bool(self.config.get("enable_brake_light_heuristic", False))
-                and track["label"] in {"car", "bus", "truck"}
-                and (in_ego_lane or near_field_vehicle)
+                track["label"] in {"car", "bus", "truck"}
+                and path_conflict
                 and float(track["age_seconds"]) >= 0.40
             ):
-                brake_score = self._brake_light_score(frame, track["bbox"])
-                if brake_score >= float(self.config.get("brake_light_score_min", 0.42)):
+                brake_score = (
+                    self._brake_light_score(frame, track["bbox"])
+                    if frame is not None
+                    and bool(self.config.get("enable_brake_light_heuristic", False))
+                    else 0.0
+                )
+                relative_rate = float(track.get("relative_closing_rate_per_s", 0.0))
+                relative_acceleration = float(
+                    track.get("relative_closing_acceleration_per_s2", 0.0)
+                )
+                kinematic_brake_cue = (
+                    int(track.get("relative_kinematics_observations", 0)) >= 4
+                    and box_width_ratio
+                    >= float(self.config.get("lead_braking_width_ratio_min", 0.205))
+                    and relative_rate
+                    >= float(self.config.get("lead_braking_relative_rate_min", 0.10))
+                    and relative_acceleration
+                    >= float(
+                        self.config.get("lead_braking_relative_acceleration_min", 0.12)
+                    )
+                )
+                lamp_cue = brake_score >= float(
+                    self.config.get("brake_light_score_min", 0.42)
+                ) and box_width_ratio >= float(
+                    self.config.get("lead_braking_lamp_width_ratio_min", 0.12)
+                )
+                if lamp_cue or kinematic_brake_cue:
                     self._braking_streak[int(track["track_id"])] += 1
                 else:
                     self._braking_streak[int(track["track_id"])] = max(
@@ -281,7 +487,24 @@ class RiskEngine:
                 if self._braking_streak[int(track["track_id"])] >= int(
                     self.config.get("lead_braking_confirmation_frames", 3)
                 ):
-                    braking_evidence = {**evidence, "brake_light_score": round(brake_score, 4)}
+                    braking_evidence = {
+                        **evidence,
+                        "brake_light_score": round(brake_score, 4),
+                        "paired_brake_lamp_cue": lamp_cue,
+                        "relative_kinematic_brake_cue": kinematic_brake_cue,
+                        "confirmation_frames": self._braking_streak[
+                            int(track["track_id"])
+                        ],
+                        "lead_braking_method": (
+                            "paired_lamp_plus_relative_image_space"
+                            if lamp_cue and kinematic_brake_cue
+                            else "paired_lamp_image_space"
+                            if lamp_cue
+                            else "relative_scale_acceleration_image_space"
+                        ),
+                        "absolute_speed_available": False,
+                        "single_frame_trigger": False,
+                    }
                     candidates.append(
                         self._candidate(
                             "lead_vehicle_braking",
@@ -298,7 +521,7 @@ class RiskEngine:
                 >= float(self.config.get("vulnerable_near_field_proximity", 0.18))
                 and (
                     0.28 <= x_norm <= 0.72
-                    or abs(float(track["lateral_velocity"]))
+                    or abs(relative_lateral)
                     >= float(self.config.get("vulnerable_lateral_override", 0.05))
                 )
             )
@@ -311,9 +534,16 @@ class RiskEngine:
                 )
                 and proximity >= 0.10
                 and float(track["age_seconds"]) >= 0.40
+                and path_conflict
                 and (
                     risk >= float(self.config["vulnerable_warning"])
                     or vulnerable_fallback
+                )
+                and self._confirmed_signal(
+                    track_id,
+                    "vulnerable_road_user",
+                    True,
+                    int(self.config.get("hazard_confirmation_frames", 3)),
                 )
             ):
                 candidates.append(
@@ -326,45 +556,130 @@ class RiskEngine:
                     )
                 )
 
-            moving_toward_center = (x_norm < 0.5 and track["lateral_velocity"] > 0.035) or (
-                x_norm > 0.5 and track["lateral_velocity"] < -0.035
+            moving_toward_center = (x_norm < 0.5 and trajectory_lateral > 0.018) or (
+                x_norm > 0.5 and trajectory_lateral < -0.018
+            )
+            longitudinal_dominant = (
+                vertical_displacement > 0.008
+                and abs(vertical_displacement)
+                >= float(self.config.get("cut_in_longitudinal_ratio", 1.25))
+                * max(abs(relative_displacement), 1e-4)
+            )
+            cut_in_maneuver = moving_toward_center and (
+                longitudinal_dominant
+                or approach >= float(self.config.get("cut_in_approach_min", 0.02))
+            )
+            vehicle_merge_override = (
+                track["label"] in {"car", "bus", "truck"}
+                and cut_in_maneuver
+                and path_conflict_relaxed
+                and proximity >= 0.08
+                and approach >= 0.02
             )
             if (
                 not in_ego_lane
                 and (on_drivable or not lane_reliable)
                 and float(track["age_seconds"]) >= 0.50
-                and moving_toward_center
+                and cut_in_maneuver
+                and corridor_left - 0.12 <= projected_x_norm <= corridor_right + 0.12
                 and (
-                    risk >= float(self.config["cut_in_warning"])
+                    vehicle_merge_override
+                    or risk >= float(self.config["cut_in_warning"])
                     or proximity >= float(self.config.get("cut_in_proximity_override", 0.30))
                 )
+                and self._confirmed_signal(
+                    track_id,
+                    "cut_in",
+                    True,
+                    int(self.config.get("trajectory_confirmation_frames", 2)),
+                )
             ):
+                origin_location = (
+                    "phía trước bên trái"
+                    if evidence["origin_side"] == "left"
+                    else "phía trước bên phải"
+                    if evidence["origin_side"] == "right"
+                    else location
+                )
                 candidates.append(
                     self._candidate(
                         "cut_in",
                         "warning",
-                        f"{label_vi} {location} có xu hướng nhập làn.",
-                        item,
+                        f"{label_vi} {origin_location} có xu hướng nhập làn.",
+                        {**item, "location": origin_location},
                         evidence,
                     )
                 )
 
             lateral_min = float(self.config.get("cross_traffic_lateral_min", 0.028))
+            cross_displacement_min = float(
+                self.config.get("cross_traffic_displacement_min", 0.025)
+            )
+            cross_vehicle_quality = (
+                track["label"] not in {"car", "bus", "truck"}
+                or (
+                    float(track["confidence"])
+                    >= float(self.config.get("cross_vehicle_confidence_min", 0.55))
+                    and motion_observations
+                    >= int(self.config.get("cross_vehicle_motion_observations_min", 6))
+                )
+            )
+            cross_motion_valid = (
+                cross_vehicle_quality
+                and
+                motion_observations
+                >= int(self.config.get("cross_traffic_motion_observations_min", 5))
+                and abs(relative_displacement) >= cross_displacement_min
+                and abs(relative_lateral) >= lateral_min
+                and abs(relative_displacement)
+                >= float(self.config.get("cross_traffic_lateral_dominance_ratio", 0.65))
+                * max(abs(vertical_displacement), 1e-4)
+                and float(track.get("relative_closing_rate_per_s", 0.0))
+                >= float(self.config.get("cross_traffic_relative_rate_min", -0.15))
+                and (
+                    (origin_side == "left" and relative_displacement > 0.0)
+                    or (origin_side == "right" and relative_displacement < 0.0)
+                    or origin_side == "front"
+                )
+            )
             if (
-                track["label"] in {"person", "rider", "motorcycle", "bicycle"}
+                track["label"]
+                in {"person", "rider", "motorcycle", "bicycle", "car", "bus", "truck"}
                 and (on_drivable or not lane_reliable)
                 and not in_ego_lane
-                and abs(float(track["lateral_velocity"])) >= lateral_min
+                and cross_motion_valid
+                and not cut_in_maneuver
+                and not near_field_imminent
+                and track_id not in self._critical_fcw_tracks
+                and corridor_left - 0.12 <= projected_x_norm <= corridor_right + 0.12
                 and proximity >= 0.08
                 and float(track["age_seconds"]) >= 0.40
+                and self._confirmed_signal(
+                    track_id,
+                    "cross_traffic",
+                    True,
+                    int(self.config.get("trajectory_confirmation_frames", 2)),
+                )
             ):
+                direction_vi = (
+                    "từ trái sang phải"
+                    if movement_direction == "left_to_right"
+                    else "từ phải sang trái"
+                )
                 candidates.append(
                     self._candidate(
                         "cross_traffic",
                         "warning",
-                        f"{label_vi} đang cắt ngang {location}. Hãy chú ý.",
+                        f"{label_vi} đang cắt ngang {direction_vi} phía trước. Hãy chú ý.",
                         item,
-                        {**evidence, "lateral_velocity": track["lateral_velocity"]},
+                        {
+                            **evidence,
+                            "lateral_velocity": relative_lateral,
+                            "motion_observations": motion_observations,
+                            "cross_motion_valid": cross_motion_valid,
+                            "cross_vehicle_quality": cross_vehicle_quality,
+                            "static_object_suppression": "passed_multi_frame_displacement_gate",
+                        },
                     )
                 )
 
@@ -439,8 +754,11 @@ class RiskEngine:
                 visible_ids.add(class_id)
                 stable_box = (
                     class_id in self._sign_last_bbox
-                    and bbox_iou(self._sign_last_bbox[class_id], sign["bbox"])
-                    >= float(self.config.get("traffic_sign_tracking_iou_min", 0.25))
+                    and self._traffic_sign_track_stable(
+                        self._sign_last_bbox[class_id],
+                        sign["bbox"],
+                        frame_shape,
+                    )
                 )
                 if not stable_box:
                     self._sign_hits[class_id] = 1
@@ -568,6 +886,43 @@ class RiskEngine:
             and y2 <= height * float(self.config.get("speed_sign_max_bottom_ratio", 0.82))
         )
 
+    def _traffic_sign_track_stable(
+        self,
+        previous: list[float],
+        current: list[float],
+        frame_shape: tuple[int, int],
+    ) -> bool:
+        if bbox_iou(previous, current) >= float(
+            self.config.get("traffic_sign_tracking_iou_min", 0.25)
+        ):
+            return True
+        height, width = frame_shape
+        previous_center = (
+            (previous[0] + previous[2]) * 0.5,
+            (previous[1] + previous[3]) * 0.5,
+        )
+        current_center = (
+            (current[0] + current[2]) * 0.5,
+            (current[1] + current[3]) * 0.5,
+        )
+        center_distance = math.hypot(
+            current_center[0] - previous_center[0],
+            current_center[1] - previous_center[1],
+        ) / max(math.hypot(width, height), 1.0)
+        previous_area = max(
+            (previous[2] - previous[0]) * (previous[3] - previous[1]), 1.0
+        )
+        current_area = max(
+            (current[2] - current[0]) * (current[3] - current[1]), 1.0
+        )
+        scale_ratio = math.sqrt(min(previous_area, current_area) / max(previous_area, current_area))
+        return (
+            center_distance
+            <= float(self.config.get("traffic_sign_tracking_center_distance_max", 0.055))
+            and scale_ratio
+            >= float(self.config.get("traffic_sign_tracking_scale_ratio_min", 0.45))
+        )
+
     def _valid_traffic_sign_geometry(
         self,
         bbox: list[float],
@@ -663,6 +1018,20 @@ class RiskEngine:
         coverage = float(red_mask.mean())
         return _clamp(paired * 18.0 + coverage * 4.0)
 
+    def _confirmed_signal(
+        self, track_id: int, event_type: str, condition: bool, required_frames: int
+    ) -> bool:
+        key = (track_id, event_type)
+        if not condition:
+            self._signal_streak[key] = 0
+            self._signal_last_frame.pop(key, None)
+            return False
+        if self._signal_last_frame.get(key) != self._analysis_frame - 1:
+            self._signal_streak[key] = 0
+        self._signal_streak[key] += 1
+        self._signal_last_frame[key] = self._analysis_frame
+        return self._signal_streak[key] >= max(1, required_frames)
+
     @staticmethod
     def _candidate(
         event_type: str,
@@ -679,6 +1048,20 @@ class RiskEngine:
             "risk_score": track["risk_score"],
             "object_id": track["track_id"],
             "location": track["location"],
+            "event_priority": (
+                5
+                if event_type == "cut_in" and str(track["label"]) in {"car", "bus", "truck"}
+                else 5
+                if event_type == "cross_traffic"
+                and str(track["label"]) in {"person", "rider", "motorcycle", "bicycle"}
+                else {
+                    "fcw": 0,
+                    "vulnerable_road_user": 1,
+                    "cut_in": 2,
+                    "lead_vehicle_braking": 3,
+                    "cross_traffic": 4,
+                }.get(event_type, 0)
+            ),
             # Track IDs fragment under occlusion and scene cuts. Hazard-region
             # cooldown prevents the same physical threat being announced again
             # merely because the tracker assigned a new ID.

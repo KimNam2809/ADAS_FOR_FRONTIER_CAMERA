@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from .auth import TokenManager
 from .config import ConfigManager, PROJECT_ROOT, media_inventory
 from .pipeline import RoadWatchService
-from .schemas import ConfigPatch, LoginRequest, SessionRequest, TokenResponse, User
+from .schemas import ConfigPatch, LoginRequest, SeekRequest, SessionRequest, TokenResponse, User
 from .storage import Storage
 
 
@@ -100,6 +101,30 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
         service.stop()
         return {"ok": True}
 
+    @app.post("/api/session/pause")
+    def pause_session(_: User = Depends(current_user)) -> dict[str, Any]:
+        try:
+            service.pause()
+            return {"ok": True, "playback": service.status()["playback"]}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/session/resume")
+    def resume_session(_: User = Depends(current_user)) -> dict[str, Any]:
+        try:
+            service.resume()
+            return {"ok": True, "playback": service.status()["playback"]}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/session/seek")
+    def seek_session(request: SeekRequest, _: User = Depends(current_user)) -> dict[str, Any]:
+        try:
+            target = service.seek(request.seconds, relative=request.relative)
+            return {"ok": True, "target_seconds": target}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @app.get("/api/events")
     def events(
         _: User = Depends(current_user), limit: int = Query(100, ge=1, le=500)
@@ -130,13 +155,13 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
         return storage.list_audits(limit)
 
     @app.get("/api/stream.mjpg")
-    def stream(token: str = Query(...)) -> StreamingResponse:
+    def stream(token: str = Query(...), session_id: str | None = Query(default=None)) -> StreamingResponse:
         try:
             token_manager.verify(token)
         except ValueError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
         return StreamingResponse(
-            service.mjpeg(), media_type="multipart/x-mixed-replace; boundary=frame"
+            service.mjpeg(session_id), media_type="multipart/x-mixed-replace; boundary=frame"
         )
 
     @app.websocket("/ws")
@@ -154,7 +179,9 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
         except WebSocketDisconnect:
             return
 
-    frontend_dist = PROJECT_ROOT / "frontend" / "dist"
+    frontend_dist = Path(
+        os.getenv("ROADWATCH_FRONTEND_DIST", str(PROJECT_ROOT / "frontend" / "dist"))
+    ).resolve()
     if frontend_dist.exists():
         assets = frontend_dist / "assets"
         if assets.exists():

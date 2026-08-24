@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-04",
+  "generated_at": "2026-08-21T14:51:12.873066+00:00",
+  "baseline_profile": "baseline_coco",
+  "candidate_profile": "roadwatch_objects_v1_1",
+  "inputs": {
+    "baseline": {
+      "path": "reports/rw03-regression-final.json",
+      "sha256": "B60F1104C35E3DE715FE396C82E1F913462FA28D28FA34BD38744CA87F3D6A28"
+    },
+    "candidate": {
+      "path": "reports/rw04-candidate-regression.json",
+      "sha256": "D6837CFC3896D4C8446AA7D6E6B4E977DCF09CB51929AA8FC6CB7F8B3ED4ED2F"
+    },
+    "ground_truth": {
+      "path": "evaluation/regression_ground_truth.json",
+      "sha256": "A8E3F5BC31402D2C87164B641A5A49113EEEB6EACBC2036BD39CDEEB0B7A27E0"
+    }
+  },
+  "baseline": {
+    "event_precision": 0.0335,
+    "event_recall": 0.7083,
+    "false_positive": 491,
+    "false_alerts_per_minute": 75.9278,
+    "coverage_seconds": 388.0,
+    "object_latency_p95_ms_mean": 39.197,
+    "vru_ground_truth_events": 9,
+    "vru_matched_events": 6,
+    "vru_recall": 0.6667
+  },
+  "candidate": {
+    "event_precision": 0.0258,
+    "event_recall": 0.5833,
+    "false_positive": 529,
+    "false_alerts_per_minute": 81.8041,
+    "coverage_seconds": 388.0,
+    "object_latency_p95_ms_mean": 36.964,
+    "vru_ground_truth_events": 9,
+    "vru_matched_events": 4,
+    "vru_recall": 0.4444
+  },
+  "promotion_gate": {
+    "automated_pass": false,
+    "checks": {
+      "event_recall_not_lower": false,
+      "vru_recall_not_lower": false,
+      "object_latency_p95_within_125_percent": true,
+      "false_alert_rate_not_over_110_percent": true
+    },
+    "human_review_50_fp_fn": "not_required_auto_fail",
+    "decision": "keep_baseline"
+  },
+  "active_profile_after_gate": "baseline_coco"
+}

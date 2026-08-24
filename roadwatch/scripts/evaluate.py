@@ -19,6 +19,7 @@ os.environ["ROADWATCH_DISABLE_AUDIO"] = "1"
 from roadwatch.config import ConfigManager  # noqa: E402
 from roadwatch.ground_truth import events_for_source, score_events, validate_ground_truth  # noqa: E402
 from roadwatch.pipeline import RoadWatchService  # noqa: E402
+from roadwatch.regression import truth_for_scenario  # noqa: E402
 from roadwatch.storage import Storage  # noqa: E402
 
 
@@ -156,10 +157,13 @@ def run_scenario(
         service.close()
         storage.close()
     scenario_eval = _scenario_metrics(scenario, events)
-    timestamp_metrics = score_events(
-        events,
-        events_for_source(ground_truth, str(scenario["source"])) if ground_truth else None,
+    video_truth = events_for_source(ground_truth, str(scenario["source"])) if ground_truth else None
+    clip_truth = truth_for_scenario(
+        video_truth,
+        float(scenario.get("start_seconds", 0.0)),
+        float(scenario.get("start_seconds", 0.0)) + float(scenario["duration_seconds"]),
     )
+    timestamp_metrics = score_events(events, clip_truth)
     first_warning = min(
         (float(event.get("source_time", 0.0)) for event in events),
         default=None,

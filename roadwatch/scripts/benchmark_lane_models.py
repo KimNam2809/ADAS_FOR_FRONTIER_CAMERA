@@ -22,6 +22,9 @@ DEFAULT_SAMPLES = {
     "video_test.mp4": [10, 13, 16, 20, 42, 48, 54],
     "test_video10.mp4": [2, 4, 6, 8],
     "test_video11.mp4": [30, 32, 34, 36],
+    "dashcam_vietnam_night.mp4": [15, 45, 75, 105, 135, 165],
+    "dashcam_vietnam_rain+night.mp4": [10, 30, 50, 70, 90, 105],
+    "dashcam_vietnam_traffic_multi.mp4": [30, 120, 210, 300, 390, 480, 570, 660],
 }
 
 

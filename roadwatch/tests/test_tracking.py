@@ -37,3 +37,18 @@ def test_two_wheeler_class_switch_keeps_track_and_stable_label() -> None:
     assert second[0]["track_id"] == first[0]["track_id"]
     assert second[0]["label"] == "rider"
     assert second[0]["confirmed"] is True
+
+
+def test_single_truck_flicker_does_not_replace_stable_car_label() -> None:
+    tracker = IoUTracker(CONFIG)
+    car = {"bbox": [100, 100, 220, 240], "class_id": 2, "label": "car", "confidence": 0.92}
+    truck_flicker = {
+        "bbox": [102, 101, 222, 241],
+        "class_id": 7,
+        "label": "truck",
+        "confidence": 0.70,
+    }
+    first = tracker.update([car], 1.0, 640)
+    second = tracker.update([truck_flicker], 1.5, 640)
+    assert second[0]["track_id"] == first[0]["track_id"]
+    assert second[0]["label"] == "car"

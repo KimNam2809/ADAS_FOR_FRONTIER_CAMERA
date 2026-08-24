@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "release_id": "roadwatch-r0-2026-08-21",
+  "release_level": "R0",
+  "active_profiles": {
+    "object": "baseline_coco",
+    "traffic_sign": "roadwatch_sign_phase2",
+    "lane": "yolop"
+  },
+  "runtime_contract": {
+    "object_model": "yolo11n.pt",
+    "object_onnx_model": "yolo11n.onnx",
+    "sign_model": "roadwatch_detector_v2.pt",
+    "sign_onnx_model": "roadwatch_detector_v2.onnx",
+    "speed_classifier_model": "roadwatch_speed_digits_v2.pt",
+    "lane_model": "yolop_lane_detection_640.onnx"
+  },
+  "artifacts": [
+    {
+      "component": "object_detector_pytorch",
+      "file": "yolo11n.pt",
+      "sha256": "0EBBC80D4A7680D14987A577CD21342B65ECFD94632BD9A8DA63AE6417644EE1"
+    },
+    {
+      "component": "object_detector_onnx",
+      "file": "yolo11n.onnx",
+      "sha256": "489B4866C6034CBA49D5F6A4FDC844266D4DC88F3E0627D932F804F967493E4F"
+    },
+    {
+      "component": "traffic_sign_detector_pytorch",
+      "file": "roadwatch_detector_v2.pt",
+      "sha256": "83910CD5ED86120825B6A770CB49C3344AF194B423BE78281B09141B6ACB89E3"
+    },
+    {
+      "component": "traffic_sign_detector_onnx",
+      "file": "roadwatch_detector_v2.onnx",
+      "sha256": "268268164CF00B24680FCE7CDC7AA072874E236F045D1DBA83008A10CD0B7291"
+    },
+    {
+      "component": "speed_classifier_pytorch",
+      "file": "roadwatch_speed_digits_v2.pt",
+      "sha256": "8BEA1B1F49BD713FD161593C6094C3B688F9EC447FE76F5341D8B20BBFD1B5F5"
+    },
+    {
+      "component": "speed_classifier_onnx",
+      "file": "roadwatch_speed_digits_v2.onnx",
+      "sha256": "B26B89E8692CB694B869EF4C62269FA0AFA29C76BC5006F4FD6A8A7D3E9D8ECF"
+    },
+    {
+      "component": "lane_detector_onnx",
+      "file": "yolop_lane_detection_640.onnx",
+      "sha256": "CD66A3E0087A7258AE07768CC02CB742EED93865727AE4C9BAF969B8FA190696"
+    }
+  ]
+}

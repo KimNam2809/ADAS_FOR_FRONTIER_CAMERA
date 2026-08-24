@@ -266,9 +266,48 @@ def test_audio_backend_failure_is_not_reported_as_completed() -> None:
     assert not any(status == "completed" for status, _reason in lifecycle)
 
 
+def test_audio_metrics_meet_software_queue_gate() -> None:
+    manager = AudioManager(CONFIG)
+    manager._speak = lambda _message: "test-provider"  # type: ignore[method-assign]
+    manager.start()
+    for index in range(100):
+        manager.submit({
+            "event_id": f"event-{index}",
+            "event_type": "test_advisory",
+            "severity": "advisory",
+            "message": f"Thông báo {index}",
+            "spoken_message": f"Thông báo {index}",
+            "audio_action": "tts",
+            "expires_at": time.time() + 10,
+            "supersede_key": f"test:{index}",
+        })
+    manager._queue.join()
+    status = manager.status()
+    manager.stop()
+    assert status["completion_rate"] >= 0.99
+    assert status["stale_rate"] < 0.02
+    assert status["start_latency_p95_ms"] <= 750.0
+
+
 def test_no_entry_message_expresses_direction_uncertainty() -> None:
     policy = policy_for_label("No Entry")
     assert policy is not None
     assert policy.severity == "advisory"
     assert "kiểm tra" in policy.message.lower()
     assert "hướng đang đi" in policy.message.lower()
+
+
+def test_sign_tracking_accepts_zoom_when_center_remains_stable() -> None:
+    engine = RiskEngine(CONFIG)
+    previous = [100.0, 100.0, 130.0, 130.0]
+    zoomed = [92.0, 92.0, 138.0, 138.0]
+    assert engine._traffic_sign_track_stable(previous, zoomed, (480, 640))
+
+
+def test_sign_tracking_rejects_distant_box_with_same_class() -> None:
+    engine = RiskEngine(CONFIG)
+    assert not engine._traffic_sign_track_stable(
+        [100.0, 100.0, 130.0, 130.0],
+        [400.0, 250.0, 430.0, 280.0],
+        (480, 640),
+    )

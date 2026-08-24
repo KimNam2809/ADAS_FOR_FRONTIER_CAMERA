@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-06",
+  "generated_at": "2026-08-21T17:07:23.667527+00:00",
+  "inputs": {
+    "report": {
+      "path": "reports/rw06-regression-v2.json",
+      "sha256": "6493429C04C7A31F875EC76006DA16FA28DE269D05ED8DCE61D4F73FA91C543B"
+    },
+    "ground_truth": {
+      "path": "evaluation/regression_ground_truth.json",
+      "sha256": "A8E3F5BC31402D2C87164B641A5A49113EEEB6EACBC2036BD39CDEEB0B7A27E0"
+    }
+  },
+  "status": "pass",
+  "gates": {
+    "relative_event_recall_at_least_090": true,
+    "no_single_frame_trigger": true,
+    "lead_brake_confirmation_at_least_3_frames": true,
+    "all_metrics_labeled_image_space_relative": true,
+    "false_events_per_minute_at_most_100": true
+  },
+  "verified_events": 2,
+  "matched_events": 2,
+  "relative_event_recall": 1.0,
+  "emitted_events": 8,
+  "false_events_in_verified_coverage": 6,
+  "false_events_by_type": {
+    "fcw": 2,
+    "lead_vehicle_braking": 4
+  },
+  "false_events_per_minute": 0.9278,
+  "measured_seconds": 388.0,
+  "evidence_scope_warning": "Only two verified FCW/lead-braking events; pass is R0 evidence, not a production or closed-course safety claim."
+}

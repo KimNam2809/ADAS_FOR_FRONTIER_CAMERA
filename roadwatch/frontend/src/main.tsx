@@ -8,6 +8,11 @@ const EMPTY_STATUS: Status = {
   mode: "idle",
   frame_id: 0,
   source_fps: 0,
+  source_time: 0,
+  duration_seconds: 0,
+  seekable: false,
+  playback: "stopped",
+  session_id: undefined,
   tracks: [],
   signs: [],
   lane: { quality: 0, offset: 0 },
@@ -133,7 +138,7 @@ function Header({ user, status, connected, view, setView, logout }: {
 function VideoStage({ token, status, compact = false }: { token: string; status: Status; compact?: boolean }) {
   const topEvent = status.active_events?.[0];
   return <section className={`video-stage ${compact ? "compact" : ""}`}>
-    {status.running ? <img src={`/api/stream.mjpg?token=${encodeURIComponent(token)}`} alt="Luồng camera RoadWatch" /> : <div className="video-placeholder"><div className="road-perspective"><i /><i /></div><strong>Sẵn sàng phân tích</strong><span>Chọn video và bắt đầu phiên RoadWatch</span></div>}
+    {status.running ? <img key={status.session_id} src={`/api/stream.mjpg?token=${encodeURIComponent(token)}&session_id=${encodeURIComponent(status.session_id ?? "")}`} alt="Luồng camera RoadWatch" /> : <div className="video-placeholder"><div className="road-perspective"><i /><i /></div><strong>Sẵn sàng phân tích</strong><span>Chọn video và bắt đầu phiên RoadWatch</span></div>}
     <div className="camera-badge">CAM 01 · {status.source ?? "NO SOURCE"}</div>
     <div className="offline-badge">● OFFLINE EDGE</div>
     {topEvent && status.running && <div className={`hazard-banner ${topEvent.severity}`}><span>{topEvent.severity === "critical" ? "!" : "i"}</span><div><small>{topEvent.event_type.toUpperCase()}</small><strong>{topEvent.display_message ?? topEvent.message}</strong></div><b>{Math.round(topEvent.risk_score * 100)}</b></div>}
@@ -145,18 +150,47 @@ function SessionControls({ token, status }: { token: string; status: Status }) {
   const [source, setSource] = useState("test_video10.mp4");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [seekDraft, setSeekDraft] = useState(0);
+  const [dragging, setDragging] = useState(false);
   useEffect(() => { api.media(token).then((items) => { setMedia(items); if (!items.some((item) => item.name === source) && items.length) setSource(items[0].name); }).catch((reason) => setError(String(reason))); }, [token]);
-  async function toggle() {
+  useEffect(() => { if (!dragging) setSeekDraft(status.source_time ?? 0); }, [status.source_time, dragging]);
+  const formatTime = (seconds: number) => {
+    const safe = Math.max(0, Math.floor(seconds || 0));
+    const hours = Math.floor(safe / 3600);
+    const minutes = Math.floor((safe % 3600) / 60);
+    const secs = safe % 60;
+    return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : `${minutes}:${String(secs).padStart(2, "0")}`;
+  };
+  async function run(action: () => Promise<unknown>) {
     setBusy(true); setError("");
-    try { if (status.running) await api.stop(token); else await api.start(token, source); }
+    try { await action(); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Không thể đổi trạng thái"); }
     finally { setBusy(false); }
+  }
+  const startAt = status.source === source && status.source_time < status.duration_seconds ? status.source_time : 0;
+  const selectedSession = status.source === source;
+  async function commitSeek() {
+    setDragging(false);
+    if (status.running && status.seekable) await run(() => api.seek(token, seekDraft));
   }
   return <div className="session-controls">
     <select aria-label="Video demo" value={source} onChange={(event) => setSource(event.target.value)} disabled={status.running}>
       {media.map((item) => <option key={item.name} value={item.name}>{item.name} · {item.size_mb} MB</option>)}
     </select>
-    <button className={status.running ? "stop-button" : "primary-button"} onClick={toggle} disabled={busy}>{busy ? "Đang xử lý…" : status.running ? "Dừng phiên" : "Bắt đầu phân tích"}</button>
+    {!status.running && <button className="primary-button" onClick={() => run(() => api.start(token, source, startAt))} disabled={busy}>{busy ? "Đang xử lý…" : startAt > 0 ? `Tiếp tục từ ${formatTime(startAt)}` : "Bắt đầu phân tích"}</button>}
+    {status.running && <>
+      <button className="transport-button" onClick={() => run(() => status.playback === "paused" ? api.resume(token) : api.pause(token))} disabled={busy}>{status.playback === "paused" ? "▶ Tiếp tục" : "Ⅱ Tạm dừng"}</button>
+      <button className="transport-button" onClick={() => run(() => api.seek(token, -10, true))} disabled={busy}>↶ 10s</button>
+      <button className="transport-button" onClick={() => run(() => api.seek(token, 10, true))} disabled={busy}>10s ↷</button>
+      <button className="transport-button" onClick={() => run(async () => { await api.seek(token, 0); if (status.playback === "paused") await api.resume(token); })} disabled={busy}>↺ Phát lại</button>
+      <button className="stop-button" onClick={() => run(() => api.stop(token))} disabled={busy}>■ Dừng</button>
+    </>}
+    {selectedSession && (status.running || status.duration_seconds > 0) && <div className="replay-timeline">
+      <span>{formatTime(dragging ? seekDraft : status.source_time)}</span>
+      <input aria-label="Vị trí video" type="range" min="0" max={Math.max(status.duration_seconds, 0.1)} step="0.1" value={Math.min(seekDraft, Math.max(status.duration_seconds, 0.1))} disabled={!status.running || !status.seekable || busy} onPointerDown={() => setDragging(true)} onChange={(event) => setSeekDraft(Number(event.target.value))} onPointerUp={() => void commitSeek()} onKeyUp={() => void commitSeek()} />
+      <span>{formatTime(status.duration_seconds)}</span>
+      <b>{status.playback === "paused" ? "ĐÃ TẠM DỪNG" : status.running ? "ĐANG PHÁT" : "ĐÃ DỪNG"}</b>
+    </div>}
     {error && <span className="inline-error">{error}</span>}
   </div>;
 }

@@ -7,6 +7,9 @@ from typing import Any
 
 
 SEMANTIC_FAMILIES = {
+    "car": "motor_vehicle",
+    "bus": "motor_vehicle",
+    "truck": "motor_vehicle",
     "rider": "two_wheeler",
     "bicycle": "two_wheeler",
     "motorcycle": "two_wheeler",
@@ -39,6 +42,11 @@ class Track:
     missed: int = 0
     history: deque[tuple[float, list[float]]] = field(default_factory=lambda: deque(maxlen=12))
     label_votes: dict[str, float] = field(default_factory=dict)
+    label_history: deque[tuple[str, float]] = field(
+        default_factory=lambda: deque(maxlen=5)
+    )
+    expansion_ema: float = 0.0
+    lateral_ema: float = 0.0
 
     def predicted_bbox(self) -> list[float]:
         if len(self.history) < 2:
@@ -57,10 +65,12 @@ class Track:
         self.missed = 0
         self.history.append((timestamp, list(self.bbox)))
         label = str(detection["label"])
-        self.label_votes[label] = self.label_votes.get(label, 0.0) + float(
-            detection["confidence"]
-        )
-        stable_label = max(self.label_votes, key=self.label_votes.get)
+        self.label_history.append((label, float(detection["confidence"])))
+        rolling_votes: dict[str, float] = {}
+        for observed_label, confidence in self.label_history:
+            rolling_votes[observed_label] = rolling_votes.get(observed_label, 0.0) + confidence
+        self.label_votes = rolling_votes
+        stable_label = max(rolling_votes, key=rolling_votes.get)
         self.label = stable_label
         if stable_label == label:
             self.class_id = int(detection["class_id"])
@@ -68,23 +78,35 @@ class Track:
     def motion(self, frame_width: int) -> tuple[float, float]:
         if len(self.history) < 2:
             return 0.0, 0.0
-        # Use a short temporal window. A full-track average hides the abrupt
-        # expansion/lateral motion that matters during braking and cut-ins.
-        recent = list(self.history)[-5:]
-        old_t, old_box = recent[0]
-        new_t, new_box = self.history[-1]
-        dt = max(new_t - old_t, 1e-3)
-        # Short tracks are dominated by detector-box jitter. Do not turn that
-        # into a fake closing-speed signal.
-        if dt < 0.30:
+        recent = list(self.history)[-8:]
+        t0 = recent[0][0]
+        times = [item[0] - t0 for item in recent]
+        if times[-1] < 0.50:
             return 0.0, 0.0
-        old_area = max((old_box[2] - old_box[0]) * (old_box[3] - old_box[1]), 1.0)
-        new_area = max((new_box[2] - new_box[0]) * (new_box[3] - new_box[1]), 1.0)
-        expansion = (math.sqrt(new_area) / math.sqrt(old_area) - 1.0) / dt
-        old_center = (old_box[0] + old_box[2]) * 0.5
-        new_center = (new_box[0] + new_box[2]) * 0.5
-        lateral = ((new_center - old_center) / max(frame_width, 1)) / dt
-        return float(expansion), float(lateral)
+        log_scales = []
+        centers = []
+        for _, box in recent:
+            area = max((box[2] - box[0]) * (box[3] - box[1]), 1.0)
+            log_scales.append(math.log(math.sqrt(area)))
+            centers.append(((box[0] + box[2]) * 0.5) / max(frame_width, 1))
+
+        def slope(values: list[float]) -> float:
+            mean_t = sum(times) / len(times)
+            mean_v = sum(values) / len(values)
+            denominator = sum((value - mean_t) ** 2 for value in times)
+            if denominator <= 1e-9:
+                return 0.0
+            return sum(
+                (time_value - mean_t) * (value - mean_v)
+                for time_value, value in zip(times, values)
+            ) / denominator
+
+        expansion = max(-2.0, min(2.0, slope(log_scales)))
+        lateral = max(-1.0, min(1.0, slope(centers)))
+        alpha = 0.65
+        self.expansion_ema = alpha * expansion + (1.0 - alpha) * self.expansion_ema
+        self.lateral_ema = alpha * lateral + (1.0 - alpha) * self.lateral_ema
+        return float(self.expansion_ema), float(self.lateral_ema)
 
 
 class IoUTracker:
@@ -129,8 +151,14 @@ class IoUTracker:
                         dcx = (box[0] + box[2]) * 0.5
                         dcy = (box[1] + box[3]) * 0.5
                         distance = math.hypot(dcx - pcx, dcy - pcy) / max(frame_width, 1)
-                        if distance <= 0.08:
-                            candidates.append((0.15 - distance, track_id, index))
+                        old_width = max(predicted[2] - predicted[0], 1.0)
+                        new_width = max(box[2] - box[0], 1.0)
+                        size_ratio = min(old_width, new_width) / max(old_width, new_width)
+                        distance_gate = min(0.16, 0.08 + track.missed * 0.025)
+                        if distance <= distance_gate and size_ratio >= 0.45:
+                            candidates.append(
+                                (0.20 - distance + 0.05 * size_ratio, track_id, index)
+                            )
         for _, track_id, index in sorted(candidates, reverse=True):
             if track_id not in unmatched_tracks or index not in unmatched_detections:
                 continue
@@ -156,6 +184,10 @@ class IoUTracker:
                 last_seen=timestamp,
                 history=deque(maxlen=self.history_size),
                 label_votes={str(detection["label"]): float(detection["confidence"])},
+                label_history=deque(
+                    [(str(detection["label"]), float(detection["confidence"]))],
+                    maxlen=5,
+                ),
             )
             track.history.append((timestamp, list(track.bbox)))
             self._tracks[self._next_id] = track
@@ -166,6 +198,19 @@ class IoUTracker:
             if track.missed:
                 continue
             expansion, lateral = track.motion(frame_width)
+            first_box = track.history[0][1]
+            first_x_norm = (
+                (first_box[0] + first_box[2]) * 0.5 / max(frame_width, 1)
+            )
+            current_x_norm = (
+                (track.bbox[0] + track.bbox[2]) * 0.5 / max(frame_width, 1)
+            )
+            first_y_norm = (
+                (first_box[1] + first_box[3]) * 0.5 / max(frame_width, 1)
+            )
+            current_y_norm = (
+                (track.bbox[1] + track.bbox[3]) * 0.5 / max(frame_width, 1)
+            )
             result.append(
                 {
                     "track_id": track.track_id,
@@ -178,6 +223,10 @@ class IoUTracker:
                     "age_seconds": round(timestamp - track.first_seen, 2),
                     "expansion_rate": round(expansion, 4),
                     "lateral_velocity": round(lateral, 4),
+                    "origin_x_norm": round(first_x_norm, 4),
+                    "displacement_x_norm": round(current_x_norm - first_x_norm, 4),
+                    "displacement_y_norm": round(current_y_norm - first_y_norm, 4),
+                    "motion_observations": len(track.history),
                 }
             )
         return result

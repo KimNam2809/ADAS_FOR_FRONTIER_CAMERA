@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-10",
+  "kernel": "lekimnam/roadwatch-lane-v2-target-quality-gate",
+  "version": 2,
+  "submitted_at": "2026-08-24",
+  "observed_status_after_submit": "RUNNING",
+  "url": "https://www.kaggle.com/code/lekimnam/roadwatch-lane-v2-target-quality-gate",
+  "resource_profile": {
+    "target_video_bytes": 1603258100,
+    "teacher_model_bytes": 825199044,
+    "total_input_bytes": 2428457144,
+    "total_input_gib": 2.262,
+    "sampled_frames_planned": 600,
+    "estimated_output_gib": "0.10-0.25",
+    "estimated_gpu_hours_to_quality_gate": "0.25-0.60",
+    "estimated_eta_minutes": "15-35"
+  },
+  "safety": {
+    "gpu_required": true,
+    "local_training": false,
+    "training_blocked": true,
+    "runtime_profile_changed": false,
+    "candidate_labels_are_ground_truth": false
+  },
+  "known_version_1_note": "Version 1 produced 420 records because OpenCV skipped dashcam_vietnam.mp4; Version 2 adds FFmpeg fallback and fail-fast per source. The authoritative target-domain fine-tune gate remains 3000 verified polyline frames as defined in configs/finetune_lane_v2.json."
+}

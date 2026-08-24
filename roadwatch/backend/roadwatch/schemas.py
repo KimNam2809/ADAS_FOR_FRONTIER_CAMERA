@@ -16,6 +16,11 @@ class SessionRequest(BaseModel):
     duration_seconds: float | None = Field(default=None, gt=0.0, le=3600.0)
 
 
+class SeekRequest(BaseModel):
+    seconds: float = Field(ge=-86400.0, le=86400.0)
+    relative: bool = False
+
+
 class ConfigPatch(BaseModel):
     patch: dict[str, Any]
 

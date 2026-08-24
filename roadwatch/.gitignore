@@ -1,6 +1,7 @@
 # Local environments and caches
 .venv/
 .cache/
+artifacts/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -28,9 +29,17 @@ datasets/*
 # Frontend build
 frontend/node_modules/
 frontend/dist/
+frontend/dist-local/
+frontend/dist-playback-test/
 frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
+
+# Android Automotive generated files
+android/**/.gradle/
+android/**/build/
+android/**/local.properties
+android/**/*.iml
 
 # IDE / OS
 .idea/
@@ -50,3 +59,12 @@ reports/*.db
 reports/ab-*.json
 reports/runtime-eval-*.json
 reports/events-eval-*.db
+
+# Kaggle/exported heavy evidence stays local or in external storage
+reports/**/*.jsonl
+reports/**/*.zip
+reports/**/*.jpg
+reports/**/*.jpeg
+reports/**/*.png
+reports/**/*.mp4
+reports/kaggle-*/

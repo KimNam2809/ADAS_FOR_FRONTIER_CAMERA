@@ -138,6 +138,8 @@ def model_inventory() -> list[dict[str, Any]]:
         ("yolo11n.pt", True),
         ("roadwatch_objects_v1.pt", False),
         ("roadwatch_objects_v1_1.pt", False),
+        ("roadwatch_objects_v2.pt", False),
+        ("roadwatch_objects_v2.onnx", False),
         ("yolo11s_vietnam_traffic.pt", True),
         ("roadwatch_detector_v2.pt", False),
         ("roadwatch_detector_v2.onnx", False),

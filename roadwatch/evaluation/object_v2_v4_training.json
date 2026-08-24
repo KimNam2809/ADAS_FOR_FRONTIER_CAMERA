@@ -1,0 +1,58 @@
+{
+  "kernel": "lekimnam/roadwatch-object-detector-v2-target-domain",
+  "version": 4,
+  "kernel_status": "COMPLETE",
+  "pipeline_status": "complete_candidate_not_promoted",
+  "elapsed_hours": 4.4,
+  "gpu_devices": [
+    "Tesla T4",
+    "Tesla T4"
+  ],
+  "base_images": {
+    "train": 70796,
+    "val": 10104,
+    "test": 20101
+  },
+  "validation_or_test_modified": false,
+  "pseudo_label_quality_gate": {
+    "sampled_images": 7935,
+    "accepted_positive_images": 6509,
+    "rejected_ambiguous_or_empty_images": 1426,
+    "class_instances": {
+      "person": 472,
+      "rider": 2085,
+      "bicycle": 132,
+      "motorcycle": 1126,
+      "car": 9853,
+      "bus": 253,
+      "truck": 510
+    },
+    "mean_confidence": 0.8259,
+    "all_gates_passed": true
+  },
+  "held_out_test": {
+    "precision": 0.6239302645017852,
+    "recall": 0.4415768762041786,
+    "map50": 0.4875581666042284,
+    "map50_95": 0.2846469187327117
+  },
+  "phase2_1_reference": {
+    "precision": 0.6567634,
+    "recall": 0.4606741,
+    "map50": 0.5124074,
+    "map50_95": 0.2987615
+  },
+  "delta_vs_phase2_1": {
+    "precision": -0.0328331,
+    "recall": -0.0190972,
+    "map50": -0.0248492,
+    "map50_95": -0.0141146
+  },
+  "artifacts_exported_remotely": [
+    "best.pt",
+    "best.onnx"
+  ],
+  "promotion_status": "blocked_pending_human_pseudo_label_review_and_event_regression",
+  "active_runtime_model_changed": false,
+  "evidence_source": "Kaggle structured execution log for Version 4"
+}

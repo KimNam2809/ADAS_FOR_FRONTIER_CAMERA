@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-05",
+  "generated_at": "2026-08-21T16:28:32.271961+00:00",
+  "inputs": {
+    "report": {
+      "path": "reports/rw05-regression-v4.json",
+      "sha256": "FF9222388CD8DDA94F7865C1CB56C7D3A7DF21AFCE75E98A6FE633170639D453"
+    },
+    "ground_truth": {
+      "path": "evaluation/regression_ground_truth.json",
+      "sha256": "A8E3F5BC31402D2C87164B641A5A49113EEEB6EACBC2036BD39CDEEB0B7A27E0"
+    }
+  },
+  "status": "fail",
+  "gates": {
+    "maneuver_recall_at_least_090": false,
+    "direction_accuracy_at_least_095": true,
+    "duplicate_event_rate_at_most_005": true,
+    "false_critical_per_minute_at_most_010": true
+  },
+  "maneuver_ground_truth_events": 18,
+  "maneuver_matched_events": 8,
+  "maneuver_recall": 0.4444,
+  "direction_checks": 8,
+  "direction_correct": 8,
+  "direction_accuracy": 1.0,
+  "direction_mismatches": [],
+  "event_count": 460,
+  "duplicate_events": 15,
+  "duplicate_event_rate": 0.0326,
+  "false_critical_events": 0,
+  "false_critical_per_minute": 0.0,
+  "measured_seconds": 388.0
+}

@@ -36,6 +36,9 @@ class AudioManager:
         self._lifecycle_callback = lifecycle_callback
         self.dropped_stale = 0
         self.completed = 0
+        self.submitted = 0
+        self.failed = 0
+        self._start_latencies_ms: list[float] = []
         self.last_provider: str | None = None
         self.last_spoken_message: str | None = None
 
@@ -55,6 +58,8 @@ class AudioManager:
         priority = 0 if event["severity"] == "critical" else 1
         key = str(event.get("supersede_key") or event.get("cooldown_key") or event["event_type"])
         self._latest_by_key[key] = str(event["event_id"])
+        event["audio_queued_at"] = time.time()
+        self.submitted += 1
         self._notify(event, "queued")
         self._queue.put((priority, self._sequence, event))
 
@@ -75,6 +80,10 @@ class AudioManager:
                     self._notify(event, "dropped_stale", "expired")
                     continue
                 self._notify(event, "playing")
+                latency_ms = max(
+                    0.0, (time.time() - float(event.get("audio_queued_at", time.time()))) * 1000.0
+                )
+                self._start_latencies_ms.append(latency_ms)
                 if event["audio_action"] == "beep_tts":
                     self._beep(self.config.get("beep_pattern"))
                 if self.config.get("tts_enabled", True):
@@ -89,6 +98,7 @@ class AudioManager:
                 self._notify(event, "completed")
             except Exception as exc:  # pragma: no cover - audio device dependent
                 self.error = str(exc)
+                self.failed += 1
                 self._notify(event, "failed", str(exc))
                 LOGGER.exception("Audio output failed")
             finally:
@@ -162,13 +172,21 @@ class AudioManager:
             writer.writeframes(silence + frames)
 
     def status(self) -> dict[str, Any]:
+        ordered_latency = sorted(self._start_latencies_ms)
+        p95_index = max(0, int((len(ordered_latency) - 1) * 0.95))
+        p95_latency = ordered_latency[p95_index] if ordered_latency else 0.0
         return {
             "enabled": self.enabled,
             "provider": "piper-vi" if (PROJECT_ROOT / self.config.get("piper_voice", "")).exists() else "system-fallback",
             "last_action": self.last_action,
             "queue_size": self._queue.qsize(),
             "completed": self.completed,
+            "submitted": self.submitted,
+            "failed": self.failed,
             "dropped_stale": self.dropped_stale,
+            "completion_rate": round(self.completed / max(self.submitted, 1), 4),
+            "stale_rate": round(self.dropped_stale / max(self.submitted, 1), 4),
+            "start_latency_p95_ms": round(p95_latency, 3),
             "tts_enabled": bool(self.config.get("tts_enabled", True)),
             "last_provider": self.last_provider,
             "last_spoken_message": self.last_spoken_message,
@@ -180,6 +198,18 @@ class AudioManager:
         if self._thread:
             self._thread.join(timeout=1.0)
         self._drain_queue()
+
+    def clear_pending(self, reason: str = "playback_control") -> None:
+        """Drop queued speech when replay time changes or pauses."""
+
+        while True:
+            try:
+                _, _, event = self._queue.get_nowait()
+                self.dropped_stale += 1
+                self._notify(event, "dropped_stale", reason)
+                self._queue.task_done()
+            except queue.Empty:
+                return
 
     def _notify(self, event: dict[str, Any], status: str, reason: str | None = None) -> None:
         event["audio_status"] = status

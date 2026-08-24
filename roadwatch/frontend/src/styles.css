@@ -48,10 +48,11 @@ button { cursor: pointer; }
 .login-card label { display: grid; gap: 8px; margin: 17px 0; color: #304966; font-size: 13px; font-weight: 700; }
 .login-card input, .session-controls select { width: 100%; border: 1px solid var(--line); background: white; border-radius: 12px; padding: 14px 15px; color: var(--navy); outline: none; transition: .2s; }
 .login-card input:focus, .session-controls select:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(8,104,255,.09); }
-.primary-button, .stop-button { border: 0; border-radius: 12px; padding: 13px 20px; color: #fff; background: linear-gradient(135deg, var(--blue), #0048c4); font-weight: 800; box-shadow: 0 8px 22px rgba(8,104,255,.24); }
-.primary-button:disabled, .stop-button:disabled { opacity: .5; cursor: wait; }
+.primary-button, .stop-button, .transport-button { border: 0; border-radius: 12px; padding: 13px 20px; color: #fff; background: linear-gradient(135deg, var(--blue), #0048c4); font-weight: 800; box-shadow: 0 8px 22px rgba(8,104,255,.24); }
+.primary-button:disabled, .stop-button:disabled, .transport-button:disabled { opacity: .5; cursor: wait; }
 .login-card > .primary-button { width: 100%; padding: 15px; margin-top: 8px; }
 .stop-button { background: linear-gradient(135deg, #f05252, #c92d2d); box-shadow: 0 8px 22px rgba(228,68,68,.18); }
+.transport-button { padding: 11px 13px; color: var(--blue-dark); background: #eaf3ff; box-shadow: none; }
 .form-error, .inline-error { color: #c82e2e; font-size: 12px; }
 .demo-users { display: flex; align-items: center; gap: 8px; margin-top: 20px; color: var(--muted); font-size: 12px; }
 .demo-users button { border: 0; padding: 6px 9px; border-radius: 7px; background: #eef5ff; color: var(--blue-dark); font-weight: 700; }
@@ -77,6 +78,9 @@ button { cursor: pointer; }
 .driver-intro p, .engineer-head p { margin: 0; color: var(--muted); font-size: 13px; }
 .session-controls { display: flex; align-items: center; gap: 10px; min-width: min(520px, 100%); flex-wrap: wrap; justify-content: flex-end; }
 .session-controls select { width: 270px; padding: 11px 13px; font-size: 12px; }
+.replay-timeline { flex: 1 0 100%; display: grid; grid-template-columns: 45px minmax(160px, 1fr) 45px auto; align-items: center; gap: 9px; color: #536b86; font-size: 10px; font-variant-numeric: tabular-nums; }
+.replay-timeline input { width: 100%; accent-color: var(--blue); cursor: pointer; }
+.replay-timeline b { padding: 5px 7px; border-radius: 7px; color: var(--blue-dark); background: #eaf3ff; font-size: 8px; letter-spacing: .6px; }
 .driver-layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 20px; }
 .video-stage { aspect-ratio: 16 / 9; border-radius: 24px; overflow: hidden; position: relative; background: #06162c; box-shadow: var(--shadow); min-height: 360px; }
 .video-stage.compact { aspect-ratio: 16 / 8.8; min-height: 310px; }
@@ -159,6 +163,6 @@ footer strong { color: #b15e21; }
 }
 @media (max-width: 760px) {
   .app-header { height: auto; min-height: 70px; grid-template-columns: 1fr auto; gap: 10px; padding-block: 10px; }.app-header nav { order: 3; grid-column: 1 / -1; height: 38px; justify-self: stretch; justify-content: center; }.live-state { display: none; }.user-chip { padding: 7px; }
-  .driver-intro, .engineer-head { align-items: stretch; flex-direction: column; }.session-controls { justify-content: stretch; min-width: 0; }.session-controls select { flex: 1; width: 170px; }.video-stage { min-height: 260px; border-radius: 16px; }.hazard-banner { left: 9px; right: 9px; bottom: 9px; grid-template-columns: 37px 1fr auto; }.hazard-banner strong { font-size: 11px; }
+  .driver-intro, .engineer-head { align-items: stretch; flex-direction: column; }.session-controls { justify-content: stretch; min-width: 0; }.session-controls select { flex: 1; width: 170px; }.replay-timeline { grid-template-columns: 40px 1fr 40px; }.replay-timeline b { grid-column: 1 / -1; width: fit-content; }.video-stage { min-height: 260px; border-radius: 16px; }.hazard-banner { left: 9px; right: 9px; bottom: 9px; grid-template-columns: 37px 1fr auto; }.hazard-banner strong { font-size: 11px; }
   .driver-rail { grid-template-columns: 1fr; }.audio-card { grid-column: auto; }.metrics-row { grid-template-columns: 1fr 1fr; }.ribbon-list { grid-template-columns: 1fr; }.table-head, .table-row { grid-template-columns: 1.5fr .5fr .7fr; }.table-head span:last-child, .table-row code { display: none; } footer { flex-direction: column; justify-content: center; gap: 4px; text-align: center; padding: 8px; }
 }

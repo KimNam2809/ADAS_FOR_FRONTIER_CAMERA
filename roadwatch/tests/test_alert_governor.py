@@ -163,3 +163,26 @@ def test_different_traffic_signs_do_not_share_audio_supersede_key() -> None:
     no_entry_event, _ = governor.decide([no_entry], now=101.0, clock=11.0)
     assert speed_event[0]["supersede_key"] == "speed_sign:80"
     assert no_entry_event[0]["supersede_key"] == "traffic_sign:17"
+
+
+def test_semantic_audio_budget_limits_advisories_but_never_critical() -> None:
+    governor = AlertGovernor(config())
+    for index, clock in enumerate((10.0, 13.0, 16.0)):
+        item = candidate("advisory", f"vru:{index}", 0.55)
+        item["object_id"] = index
+        item["semantic_audio_key"] = "vru:motorcycle:right"
+        events, _ = governor.decide([item], now=100.0 + clock, clock=clock)
+        assert events[0]["audio_action"] == "tts"
+
+    fourth = candidate("advisory", "vru:4", 0.55)
+    fourth["object_id"] = 4
+    fourth["semantic_audio_key"] = "vru:motorcycle:right"
+    events, _ = governor.decide([fourth], now=120.0, clock=20.0)
+    assert events[0]["audio_action"] == "hud"
+    assert events[0]["suppression_reason"] == "semantic_audio_budget"
+
+    critical = candidate("critical", "vru:critical", 0.95)
+    critical["object_id"] = 5
+    critical["semantic_audio_key"] = "vru:motorcycle:right"
+    events, _ = governor.decide([critical], now=121.0, clock=21.0)
+    assert events[0]["audio_action"] == "beep_tts"

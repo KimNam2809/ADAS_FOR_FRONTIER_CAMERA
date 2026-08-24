@@ -53,3 +53,22 @@ def test_phase2_1_candidate_profile_uses_canonical_taxonomy(tmp_path: Path) -> N
     assert engine.objects.model_path.name == "roadwatch_objects_v1_1.pt"
     assert engine.objects.class_thresholds["car"] == 0.55
     assert engine.objects.class_thresholds["motorcycle"] == 0.42
+
+
+def test_object_v2_candidate_profile_is_registered_but_not_active(tmp_path: Path) -> None:
+    manager = ConfigManager(runtime_path=tmp_path / "missing.json")
+    assert manager.snapshot()["inference"]["object_profile"] == "baseline_coco"
+    manager.update(
+        {
+            "inference": {
+                "object_profile": "roadwatch_objects_v2",
+                "prefer_onnx_detectors": False,
+            }
+        },
+        persist=False,
+    )
+    engine = PerceptionEngine(manager.snapshot())
+    assert engine.objects.allowed_classes == list(range(7))
+    assert engine.objects.model_path.name == "roadwatch_objects_v2.pt"
+    assert engine.objects.class_thresholds["person"] == 0.40
+    assert engine.objects.class_thresholds["car"] == 0.55

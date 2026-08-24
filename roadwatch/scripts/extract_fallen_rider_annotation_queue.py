@@ -79,7 +79,13 @@ def main() -> int:
                         "window_id": window_id,
                         "video_group_id": group_id,
                         "annotation_status": "pending",
-                        "allowed_labels": ["fallen_person", "fallen_rider", "negative"],
+                        "allowed_labels": [
+                            "fallen_person",
+                            "fallen_two_wheeler",
+                            "hard_negative",
+                            "negative",
+                        ],
+                        "temporal_event": "fallen_rider",
                     }
                 )
     finally:

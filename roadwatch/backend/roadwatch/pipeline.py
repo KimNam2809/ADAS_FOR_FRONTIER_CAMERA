@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+import uuid
 from collections import deque
 from pathlib import Path
 from typing import Any, Iterator
@@ -17,6 +18,7 @@ from .metrics import MetricsCollector
 from .kinematics import MonocularKinematics
 from .perception import PerceptionEngine
 from .risk import RiskEngine
+from .release import verify_release
 from .storage import Storage
 from .tracking import IoUTracker
 from .vehicle_io import DisabledVehicleAdapter
@@ -32,6 +34,9 @@ class RoadWatchService:
         self._state_lock = threading.RLock()
         self._frame_lock = threading.RLock()
         self._stop = threading.Event()
+        self._pause = threading.Event()
+        self._control_lock = threading.RLock()
+        self._pending_seek_seconds: float | None = None
         self._thread: threading.Thread | None = None
         self._latest_jpeg: bytes | None = None
         self._recent_events: deque[dict[str, Any]] = deque(maxlen=20)
@@ -43,6 +48,10 @@ class RoadWatchService:
             "frame_id": 0,
             "source_time": 0.0,
             "source_fps": 0,
+            "duration_seconds": 0.0,
+            "seekable": False,
+            "playback": "stopped",
+            "session_id": None,
             "tracks": [],
             "signs": [],
             "lane": {"quality": 0, "offset": 0},
@@ -87,18 +96,39 @@ class RoadWatchService:
         config = self.config_manager.snapshot()
         source = source if source is not None else config["app"]["default_source"]
         resolved = ConfigManager.media_source(source)
+        session_id = str(uuid.uuid4())
         self._stop.clear()
+        self._pause.clear()
+        with self._control_lock:
+            self._pending_seek_seconds = None
         self.tracker.reset()
         self.kinematics.reset()
         self.risk.reset()
         self.governor.reset()
         self._recent_events.clear()
         self._active_events.clear()
+        with self._frame_lock:
+            self._latest_jpeg = None
+        with self._state_lock:
+            self._status.update({
+                "running": True,
+                "mode": "loading" if isinstance(resolved, str) else "camera",
+                "playback": "loading",
+                "session_id": session_id,
+                "source": Path(resolved).name if isinstance(resolved, str) else f"camera:{resolved}",
+                "source_time": round(float(start_seconds), 3),
+                "duration_seconds": 0.0,
+                "seekable": isinstance(resolved, str),
+                "events": [],
+                "tracks": [],
+                "signs": [],
+                "error": None,
+            })
         self.metrics = MetricsCollector()
         self.audio.start()
         self._thread = threading.Thread(
             target=self._run,
-            args=(resolved, float(start_seconds), duration_seconds),
+            args=(resolved, float(start_seconds), duration_seconds, session_id),
             name="roadwatch-pipeline",
             daemon=True,
         )
@@ -106,18 +136,56 @@ class RoadWatchService:
 
     def stop(self) -> None:
         self._stop.set()
+        self._pause.clear()
         if self._thread:
             self._thread.join(timeout=5.0)
         with self._state_lock:
             self._status["running"] = False
             self._status["mode"] = "idle"
+            self._status["playback"] = "stopped"
+        with self._frame_lock:
+            self._latest_jpeg = None
+
+    def pause(self) -> None:
+        with self._state_lock:
+            if not self.is_running or not self._status.get("seekable"):
+                raise RuntimeError("Chỉ có thể tạm dừng một video replay đang chạy")
+            self._pause.set()
+            self._status["mode"] = "paused"
+            self._status["playback"] = "paused"
+        self.audio.clear_pending("playback_paused")
+
+    def resume(self) -> None:
+        with self._state_lock:
+            if not self.is_running or not self._status.get("seekable"):
+                raise RuntimeError("Không có video replay để tiếp tục")
+            self._pause.clear()
+            self._status["mode"] = "replay"
+            self._status["playback"] = "playing"
+
+    def seek(self, seconds: float, relative: bool = False) -> float:
+        with self._state_lock:
+            if not self.is_running or not self._status.get("seekable"):
+                raise RuntimeError("Nguồn hiện tại không hỗ trợ tua video")
+            current = float(self._status.get("source_time", 0.0))
+            duration = float(self._status.get("duration_seconds", 0.0))
+        target = current + float(seconds) if relative else float(seconds)
+        target = max(0.0, min(target, duration if duration > 0 else target))
+        with self._control_lock:
+            self._pending_seek_seconds = target
+        self.audio.clear_pending("playback_seek")
+        return round(target, 3)
 
     def close(self) -> None:
         self.stop()
         self.audio.stop()
 
     def _run(
-        self, source: str | int, start_seconds: float = 0.0, duration_seconds: float | None = None
+        self,
+        source: str | int,
+        start_seconds: float = 0.0,
+        duration_seconds: float | None = None,
+        session_id: str | None = None,
     ) -> None:
         config = self.config_manager.snapshot()
         app_config = config["app"]
@@ -132,6 +200,8 @@ class RoadWatchService:
         if source_fps <= 0 or source_fps > 240:
             source_fps = float(app_config["max_processed_fps"])
         target_fps = min(float(app_config["max_processed_fps"]), source_fps)
+        frame_count = float(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        total_duration = frame_count / source_fps if isinstance(source, str) and frame_count > 0 else 0.0
         stride = max(1, round(source_fps / max(target_fps, 1)))
         processed_id = 0
         captured_id = 0
@@ -139,6 +209,7 @@ class RoadWatchService:
         signs: list[dict[str, Any]] = []
         lane_output: dict[str, Any] | None = None
         started = time.perf_counter()
+        next_frame_due = time.perf_counter()
 
         with self._state_lock:
             self._status.update(
@@ -147,12 +218,40 @@ class RoadWatchService:
                     "mode": "replay" if isinstance(source, str) else "camera",
                     "source": Path(source).name if isinstance(source, str) else f"camera:{source}",
                     "source_fps": round(source_fps, 2),
+                    "duration_seconds": round(total_duration, 3),
+                    "seekable": isinstance(source, str),
+                    "playback": "playing",
+                    "session_id": session_id,
                     "error": None,
                 }
             )
         try:
             self.perception.warmup()
             while not self._stop.is_set():
+                seek_target: float | None = None
+                with self._control_lock:
+                    if self._pending_seek_seconds is not None:
+                        seek_target = self._pending_seek_seconds
+                        self._pending_seek_seconds = None
+                if seek_target is not None:
+                    with self._frame_lock:
+                        self._latest_jpeg = None
+                    cap.set(cv2.CAP_PROP_POS_MSEC, seek_target * 1000.0)
+                    captured_id = 0
+                    objects, signs, lane_output = [], [], None
+                    self.tracker.reset()
+                    self.kinematics.reset()
+                    self.risk.reset()
+                    self.governor.reset()
+                    self._recent_events.clear()
+                    self._active_events.clear()
+                    next_frame_due = time.perf_counter()
+                    with self._state_lock:
+                        self._status.update({"source_time": round(seek_target, 3), "events": []})
+                if self._pause.is_set():
+                    next_frame_due = time.perf_counter()
+                    time.sleep(0.05)
+                    continue
                 ok, frame = cap.read()
                 if not ok:
                     if isinstance(source, str) and app_config.get("loop_video", True):
@@ -161,6 +260,7 @@ class RoadWatchService:
                         self.risk.reset()
                         self.governor.reset()
                         self._active_events.clear()
+                        next_frame_due = time.perf_counter()
                         continue
                     break
                 captured_id += 1
@@ -323,18 +423,20 @@ class RoadWatchService:
                     )
 
                 if not isinstance(source, str) or app_config.get("pace_replay", True):
-                    target_elapsed = processed_id / max(target_fps, 1)
-                    actual_elapsed = time.perf_counter() - started
-                    if target_elapsed > actual_elapsed:
-                        time.sleep(min(target_elapsed - actual_elapsed, 0.1))
+                    next_frame_due += 1.0 / max(target_fps, 1)
+                    remaining = next_frame_due - time.perf_counter()
+                    if remaining > 0:
+                        time.sleep(min(remaining, 0.1))
         except Exception as exc:  # pragma: no cover - integration guard
             LOGGER.exception("Pipeline stopped unexpectedly")
             self._set_error(str(exc))
         finally:
             cap.release()
             with self._state_lock:
-                self._status["running"] = False
-                self._status["mode"] = "idle"
+                if session_id is None or self._status.get("session_id") == session_id:
+                    self._status["running"] = False
+                    self._status["mode"] = "idle"
+                    self._status["playback"] = "stopped"
 
     def _set_error(self, message: str) -> None:
         with self._state_lock:
@@ -366,11 +468,15 @@ class RoadWatchService:
 
     def health(self) -> dict[str, Any]:
         inventory = model_inventory()
+        release = verify_release(self.config_manager.snapshot(), verify_hashes=False)
         required_ready = all(
             item["available"] for item in inventory if item.get("required", True)
         )
         return {
-            "status": "ready" if required_ready else "degraded",
+            "status": "ready"
+            if required_ready and release["status"] == "pass"
+            else "degraded",
+            "release": release,
             "models": inventory,
             "pipeline_running": self.is_running,
             "providers": self.perception.status(),
@@ -379,8 +485,12 @@ class RoadWatchService:
             "kinematics": self.kinematics.status(),
         }
 
-    def mjpeg(self) -> Iterator[bytes]:
+    def mjpeg(self, session_id: str | None = None) -> Iterator[bytes]:
         while True:
+            if session_id is not None:
+                with self._state_lock:
+                    if self._status.get("session_id") != session_id:
+                        return
             with self._frame_lock:
                 frame = self._latest_jpeg
             if frame:

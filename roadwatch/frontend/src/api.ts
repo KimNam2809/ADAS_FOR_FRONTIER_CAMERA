@@ -35,6 +35,11 @@ export type Status = {
   source?: string;
   frame_id: number;
   source_fps: number;
+  source_time: number;
+  duration_seconds: number;
+  seekable: boolean;
+  playback: "loading" | "playing" | "paused" | "stopped";
+  session_id?: string;
   tracks: Array<Record<string, unknown>>;
   signs: Array<Record<string, unknown>>;
   lane: { quality: number; offset: number };
@@ -93,6 +98,13 @@ export const api = {
       body: JSON.stringify({ source, start_seconds: startSeconds, duration_seconds: durationSeconds }),
     }),
   stop: (token: string) => request<{ ok: boolean }>("/api/session/stop", token, { method: "POST" }),
+  pause: (token: string) => request<{ ok: boolean }>("/api/session/pause", token, { method: "POST" }),
+  resume: (token: string) => request<{ ok: boolean }>("/api/session/resume", token, { method: "POST" }),
+  seek: (token: string, seconds: number, relative = false) =>
+    request<{ ok: boolean; target_seconds: number }>("/api/session/seek", token, {
+      method: "POST",
+      body: JSON.stringify({ seconds, relative }),
+    }),
   config: (token: string) => request<Record<string, unknown>>("/api/config", token),
   patchConfig: (token: string, patch: Record<string, unknown>) =>
     request<Record<string, unknown>>("/api/config", token, {

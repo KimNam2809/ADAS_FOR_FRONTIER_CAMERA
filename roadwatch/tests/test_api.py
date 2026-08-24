@@ -35,3 +35,28 @@ def test_health_and_local_roles(tmp_path: Path) -> None:
         )
         assert config.status_code == 200
         assert config.json()["vehicle"]["profile"] == "VF6"
+
+
+def test_playback_control_routes_require_auth_and_forward_commands(tmp_path: Path) -> None:
+    app = create_app(database_path=tmp_path / "playback.db")
+    service = app.state.service
+    service.pause = lambda: None
+    service.resume = lambda: None
+    service.seek = lambda seconds, relative=False: 42.0 if relative else seconds
+    original_status = service.status
+    service.status = lambda: {"playback": "paused"}
+    with TestClient(app) as client:
+        assert client.post("/api/session/pause").status_code == 401
+        login = client.post(
+            "/api/auth/login", json={"username": "driver", "password": "driver123"}
+        )
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+        assert client.post("/api/session/pause", headers=headers).json()["playback"] == "paused"
+        assert client.post("/api/session/resume", headers=headers).status_code == 200
+        seek = client.post(
+            "/api/session/seek",
+            headers=headers,
+            json={"seconds": -10, "relative": True},
+        )
+        assert seek.json()["target_seconds"] == 42.0
+    service.status = original_status

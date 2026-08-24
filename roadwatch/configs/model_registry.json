@@ -35,6 +35,32 @@
         "baseline_timestamp_false_alerts_per_minute": 10.3846
       },
       "promotion_status": "candidate_failed_timestamp_recall_gate"
+    },
+    "roadwatch_objects_v2": {
+      "file": "roadwatch_objects_v2.pt",
+      "onnx_file": "roadwatch_objects_v2.onnx",
+      "sha256": "BA08682D5D61BF2D13A0DA73A92184A41BB7EA44855430249A0C43918C89A17D",
+      "onnx_sha256": "FC31DA08B9FAD5ADBA6255A777EB439FFFF18CCF31D7B532ACA266256D88E612",
+      "taxonomy": ["person", "rider", "bicycle", "motorcycle", "car", "bus", "truck"],
+      "training_source": "lekimnam/roadwatch-object-detector-v2-target-domain version 4",
+      "training_data": "BDD100K + DAWN + train-only high-confidence Vietnam target-domain pseudo labels",
+      "epochs": 20,
+      "continued_from": "roadwatch_objects_v1_1",
+      "test_precision": 0.6239303,
+      "test_recall": 0.4415769,
+      "test_map50": 0.4875582,
+      "test_map50_95": 0.2846469,
+      "locked_event_regression": {
+        "baseline_event_precision": 0.6154,
+        "baseline_event_recall": 0.8,
+        "baseline_false_alerts_per_minute": 3.8462,
+        "candidate_event_precision": 0.5,
+        "candidate_event_recall": 0.6,
+        "candidate_false_alerts_per_minute": 4.6154,
+        "baseline_object_latency_p95_ms_mean": 34.017,
+        "candidate_object_latency_p95_ms_mean": 29.392
+      },
+      "promotion_status": "candidate_rejected_static_and_event_gates"
     }
   },
   "lane_candidates": {
