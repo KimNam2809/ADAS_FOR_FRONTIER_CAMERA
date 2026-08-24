@@ -94,7 +94,37 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
 
     @app.get("/api/status")
     def status(_: User = Depends(current_user)) -> dict[str, Any]:
-        return service.status()
+        result = service.status()
+        cloud = bool(os.getenv("ROADWATCH_CLOUD_MODE"))
+        result["deployment_profile"] = "cloud_demo" if cloud else "edge_local"
+        result["status_transport"] = "polling" if cloud else "websocket_or_polling"
+        result["cloud_fast_preview"] = os.getenv("ROADWATCH_CLOUD_FAST", "0") == "1"
+        return result
+
+    @app.get("/api/media/file")
+    def media_file(
+        source: str = Query(..., min_length=1, max_length=512),
+        token: str = Query(..., min_length=16),
+    ) -> FileResponse:
+        """Serve an authenticated replay source so the UI can preview it immediately.
+
+        This is deliberately limited to the media root and is not a camera or
+        vehicle data endpoint. Cloud Run materializes a durable GCS upload on
+        the current instance before returning the file.
+        """
+        try:
+            token_manager.verify(token)
+            if source.isdigit():
+                raise ValueError("Camera live không có file preview")
+            materialized = materialize_media_source(source)
+            if not materialized.get("available"):
+                raise FileNotFoundError(source)
+            path = Path(ConfigManager.media_source(source))
+            return FileResponse(path, media_type="video/mp4", filename=path.name)
+        except ValueError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail="Không tìm thấy video preview") from exc
 
     @app.get("/api/media")
     def media(_: User = Depends(current_user)) -> list[dict[str, Any]]:

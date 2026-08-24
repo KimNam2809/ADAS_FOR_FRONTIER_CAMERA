@@ -41,6 +41,10 @@ export type AlertEvent = {
 export type Status = {
   running: boolean;
   mode: string;
+  stage?: string;
+  deployment_profile?: "cloud_demo" | "edge_local";
+  status_transport?: string;
+  cloud_fast_preview?: boolean;
   source?: string;
   source_key?: string;
   frame_id: number;
@@ -62,6 +66,7 @@ export type Status = {
   audio: { enabled: boolean; provider: string; queue_size: number; completed?: number; dropped_stale?: number; error?: string };
   metrics: {
     uptime_seconds: number;
+    warmup_ms?: number;
     captured_frames: number;
     processed_frames: number;
     dropped_frames: number;
@@ -118,7 +123,7 @@ export const api = {
     return response.json() as Promise<MediaItem & { run_id: string; sha256: string }>;
   },
   start: (token: string, source: string, startSeconds = 0, durationSeconds?: number) =>
-    request<{ ok: boolean }>("/api/session/start", token, {
+    request<{ ok: boolean; run_id?: string; session_id?: string }>("/api/session/start", token, {
       method: "POST",
       body: JSON.stringify({ source, start_seconds: startSeconds, duration_seconds: durationSeconds }),
     }),

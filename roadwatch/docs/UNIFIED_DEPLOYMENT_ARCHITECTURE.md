@@ -4,7 +4,7 @@
 > Mục tiêu: một kiến trúc dùng chung cho Web demo công khai, AAOS emulator và
 > Edge/ô tô thật.  
 > **Official live URL khuyên dùng sau DNS mapping:** `https://c3-roadwatch-162.io.vn`
-> Trạng thái: R0 Cloud Run public fallback đã triển khai và smoke-tested trong
+> Trạng thái: R0 Cloud Run public fallback đã triển khai và acceptance-tested trong
 > project `c3-roadwatch-162`; custom domain/DNS và worker/cached-result plane vẫn
 > chưa pass acceptance.
 
@@ -265,7 +265,7 @@ artifact hoặc kết quả của người dùng khác.
 
 | Thành phần | Dùng để làm gì | Guardrail |
 |---|---|---|
-| Cloud Run `roadwatch-web` | phục vụ React build và HTTPS URL | `min=0`, giới hạn max instances/cost |
+| Cloud Run `roadwatch-web` | phục vụ React build và HTTPS URL | demo: `min=max=1`, CPU always allocated; hạ `min=0` sau demo để giảm chi phí |
 | Cloud Run `roadwatch-api` | auth, run metadata, signed upload URL, status/HITL API | không giữ file lớn trong local disk |
 | Cloud Storage | input video, output video, contact sheet, evidence | retention/lifecycle, signed URL, per-run prefix |
 | Pub/Sub | queue các replay job và event worker | idempotency bằng `run_id` |
@@ -288,16 +288,22 @@ tất, còn Cloud Run Service phù hợp API/web endpoint. Tham chiếu chính t
 
 - GCP project: `c3-roadwatch-162`; region: `asia-southeast1`.
 - Artifact Registry: repository `roadwatch`; Cloud Run service: `roadwatch-web`;
-  revision smoke-tested: `roadwatch-web-00005-8mc`.
+  revision acceptance-tested: `roadwatch-web-00010-rbk`.
 - Fallback URL: `https://roadwatch-web-bx6lfekcba-as.a.run.app`.
 - GCS asset bucket: `gs://c3-roadwatch-162-roadwatch-assets`; allowlist model/video
   nằm ngoài Git, được materialize lúc startup.
 - Local parity và public smoke: login, 4-item Video Library, fresh replay
   `frame_id=1`, direct upload 14.55 MB có SHA-256 và `durable=true`, fresh replay
   từ `uploads/{run_id}/...` pass.
-- Cloud profile dùng ONNX/CPU, audio disabled; đây là evaluation/replay plane,
-  không phải FCW/LDW/TTS critical path. Direct multipart upload giới hạn 25 MB;
-  video dài cần signed GCS resumable upload.
+- Cloud fast profile dùng object-only `yolo11n_320.onnx`, tắt sign/lane/audio;
+  đây là evaluation/replay plane, không phải FCW/LDW/TTS critical path. Local và
+  AAOS vẫn giữ full perception. Direct multipart upload giới hạn 25 MB; video
+  dài cần signed GCS resumable upload.
+- Public latency acceptance trên `test_video1.mp4`: start `189 ms`, warmup
+  `874,86 ms`; sau 2 giây có 6 processed frame và track thật; sau 37 sample,
+  object model không lỗi, E2E p50 `34,24 ms`, p95 `71,25 ms`, processed FPS
+  `5,57`. Preview video hỗ trợ HTTP Range `206`; chuyển sang `test_video10.mp4`
+  reset `frame_id/source_time/tracks/signs` về `0/0/[]/[]`.
 - Health có thể báo `degraded` theo R0 static release manifest vì container cloud
   không chứa PT/hash artifacts; không dùng trạng thái này để tuyên bố model đã
   được promote hoặc hệ thống production-ready.

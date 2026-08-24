@@ -35,6 +35,7 @@ Sau khi bucket tạo thành công, upload đúng allowlist trong
 
 ```powershell
 gcloud storage cp roadwatch/models/yolo11n.onnx gs://c3-roadwatch-162-roadwatch-assets/models/
+gcloud storage cp roadwatch/models/yolo11n_320.onnx gs://c3-roadwatch-162-roadwatch-assets/models/
 gcloud storage cp roadwatch/models/yolo11n.names.json gs://c3-roadwatch-162-roadwatch-assets/models/
 gcloud storage cp roadwatch/models/roadwatch_detector_v2.onnx gs://c3-roadwatch-162-roadwatch-assets/models/
 gcloud storage cp roadwatch/models/yolop_lane_detection_640.onnx gs://c3-roadwatch-162-roadwatch-assets/models/
@@ -50,10 +51,18 @@ bootstrap phù hợp demo single-instance; production cần chuyển upload cust
 video sang signed GCS URL và replay worker bất đồng bộ để không phụ thuộc
 filesystem của Cloud Run.
 
-Cloud profile dùng detector/sign/lane ONNX trên CPU và không warm-up speed
-classifier PyTorch; đây là trade-off cold-start cho public demo. Local/AAOS
-vẫn giữ cấu hình speed classifier đầy đủ. Vì Cloud Run không có audio device,
-TTS được tắt ở cloud và UI chỉ hiển thị canonical hazard/event payload.
+Cloud fast profile dùng `yolo11n_320.onnx` object-only trên CPU. Traffic-sign,
+lane và speed classifier bị tắt riêng ở public Cloud Run vì benchmark CPU trước
+remediation lần lượt có thể khóa một frame trong hàng chục giây đến nhiều phút.
+Local/AAOS vẫn giữ full perception theo release manifest. Vì Cloud Run không có
+audio device, TTS được tắt ở cloud và UI chỉ hiển thị canonical hazard/event
+payload. Đây là cấu hình demo/evaluation, không phải edge safety benchmark.
+
+Để background inference không bị Cloud Run throttle giữa các request, demo
+profile giữ một instance ấm, `CPU=4`, `memory=8Gi`, `concurrency=8`,
+`min=max=1`, session affinity và `--no-cpu-throttling`. Cấu hình này phát sinh
+chi phí liên tục; sau demo có thể trả `min=0` và bật CPU throttling nếu không cần
+fresh analysis tức thời.
 
 Direct multipart upload trên Cloud Run được giới hạn 25 MB để nằm dưới giới
 hạn request của service. Video dài hơn phải đi qua signed GCS resumable upload

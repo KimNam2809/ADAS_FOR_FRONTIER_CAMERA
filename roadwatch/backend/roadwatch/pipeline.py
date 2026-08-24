@@ -51,6 +51,7 @@ class RoadWatchService:
             "duration_seconds": 0.0,
             "seekable": False,
             "playback": "stopped",
+            "stage": "idle",
             "session_id": None,
             "tracks": [],
             "signs": [],
@@ -126,12 +127,17 @@ class RoadWatchService:
                 "source_kind": source_kind,
                 "analysis_mode": analysis_mode,
                 "source": Path(resolved).name if isinstance(resolved, str) else f"camera:{resolved}",
+                "frame_id": 0,
+                "source_fps": 0,
                 "source_time": round(float(start_seconds), 3),
                 "duration_seconds": 0.0,
                 "seekable": isinstance(resolved, str),
                 "events": [],
                 "tracks": [],
                 "signs": [],
+                "lane": {"quality": 0, "offset": 0},
+                "degraded_reasons": [],
+                "models": self.perception.status(),
                 "error": None,
             })
         self.metrics = MetricsCollector()
@@ -234,14 +240,18 @@ class RoadWatchService:
                     "playback": "playing",
                     "session_id": session_id,
                     "run_id": run_id,
-                    "source_key": str(source) if isinstance(source, str) else None,
                     "error": None,
+                    "stage": "loading_models",
                 }
             )
         try:
             LOGGER.info("RoadWatch warmup started: run_id=%s", run_id)
+            self.metrics.begin_warmup()
             self.perception.warmup()
+            self.metrics.finish_warmup()
             LOGGER.info("RoadWatch warmup completed: run_id=%s", run_id)
+            with self._state_lock:
+                self._status["stage"] = "inference"
             while not self._stop.is_set():
                 seek_target: float | None = None
                 with self._control_lock:
@@ -312,8 +322,12 @@ class RoadWatchService:
                     self.metrics.observe("traffic_sign", latency)
                     sign_fresh = True
 
-                if lane_output is None or (
-                    inf_config.get("enable_lane", True)
+                if lane_output is None and inf_config.get("enable_lane", True):
+                    lane_output, latency = self.perception.lane.infer(frame)
+                    self.metrics.observe("lane_detection", latency)
+                elif (
+                    lane_output is not None
+                    and inf_config.get("enable_lane", True)
                     and processed_id % int(inf_config["lane_interval"]) == 0
                 ):
                     lane_output, latency = self.perception.lane.infer(frame)
@@ -434,6 +448,7 @@ class RoadWatchService:
                             },
                             "events": list(self._recent_events)[: int(app_config["retain_events"])],
                             "degraded_reasons": degraded,
+                            "stage": "inference",
                             "models": self.perception.status(),
                         }
                     )

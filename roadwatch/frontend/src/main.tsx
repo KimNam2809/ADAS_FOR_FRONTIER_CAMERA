@@ -98,22 +98,22 @@ function useRoadWatch(token: string) {
       setStatus(EMPTY_STATUS);
       return;
     }
-    let ws: WebSocket | undefined;
     let stopped = false;
-    let timer: number;
-    const connect = () => {
-      const protocol = location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${protocol}://${location.host}/ws?token=${encodeURIComponent(token)}`);
-      ws.onopen = () => setConnected(true);
-      ws.onmessage = (event) => setStatus(JSON.parse(event.data) as Status);
-      ws.onclose = () => {
+    let timer: number | undefined;
+    const poll = async () => {
+      try {
+        const next = await api.status(token);
+        if (stopped) return;
+        setStatus(next);
+        setConnected(true);
+      } catch {
         setConnected(false);
-        if (!stopped) timer = window.setTimeout(connect, 1400);
-      };
+      } finally {
+        if (!stopped) timer = window.setTimeout(() => { void poll(); }, 500);
+      }
     };
-    api.status(token).then(setStatus).catch(() => undefined);
-    connect();
-    return () => { stopped = true; window.clearTimeout(timer); ws?.close(); };
+    void poll();
+    return () => { stopped = true; if (timer !== undefined) window.clearTimeout(timer); };
   }, [token]);
   return { status, connected };
 }
@@ -137,8 +137,13 @@ function Header({ user, status, connected, view, setView, logout }: {
 
 function VideoStage({ token, status, compact = false }: { token: string; status: Status; compact?: boolean }) {
   const topEvent = status.active_events?.[0];
+  const source = status.source_key ?? "";
+  const previewUrl = source && !source.match(/^\\d+$/)
+    ? `/api/media/file?source=${encodeURIComponent(source)}&token=${encodeURIComponent(token)}`
+    : "";
+  const showPreview = Boolean(previewUrl) && (!status.running || status.frame_id === 0);
   return <section className={`video-stage ${compact ? "compact" : ""}`}>
-    {status.running ? <img key={status.session_id} src={`/api/stream.mjpg?token=${encodeURIComponent(token)}&session_id=${encodeURIComponent(status.session_id ?? "")}`} alt="Luồng camera RoadWatch" /> : <div className="video-placeholder"><div className="road-perspective"><i /><i /></div><strong>Sẵn sàng phân tích</strong><span>Chọn video và bắt đầu phiên RoadWatch</span></div>}
+    {showPreview ? <><video key={`${status.session_id ?? source}-preview`} className="source-preview" src={previewUrl} controls muted playsInline autoPlay preload="metadata" /><div className="preview-status">{status.running ? `Đang nạp perception · ${status.stage ?? "loading"}` : "Video mẫu sẵn sàng"}</div></> : status.running ? <img key={status.session_id} src={`/api/stream.mjpg?token=${encodeURIComponent(token)}&session_id=${encodeURIComponent(status.session_id ?? "")}`} alt="Luồng camera RoadWatch" /> : <div className="video-placeholder"><div className="road-perspective"><i /><i /></div><strong>Sẵn sàng phân tích</strong><span>Chọn video và bắt đầu phiên RoadWatch</span></div>}
     <div className="camera-badge">CAM 01 · {status.source ?? "NO SOURCE"}</div>
     <div className="offline-badge">● OFFLINE EDGE</div>
     {topEvent && status.running && <div className={`hazard-banner ${topEvent.severity}`}><span>{topEvent.severity === "critical" ? "!" : "i"}</span><div><small>{topEvent.event_type.toUpperCase()}</small><strong>{topEvent.display_message ?? topEvent.message}</strong></div><b>{Math.round(topEvent.risk_score * 100)}</b></div>}
@@ -151,6 +156,7 @@ function SessionControls({ token, status }: { token: string; status: Status }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | undefined>();
   const [seekDraft, setSeekDraft] = useState(0);
   const [dragging, setDragging] = useState(false);
   useEffect(() => { api.media(token).then((items) => { setMedia(items); const values = items.map((item) => item.source ?? item.name); if (!values.includes(source) && values.length) setSource(values[0]); }).catch((reason) => setError(String(reason))); }, [token]);
@@ -172,7 +178,7 @@ function SessionControls({ token, status }: { token: string; status: Status }) {
   const selectedSession = (status.source_key ?? status.source) === source || status.source === source.split("/").pop();
   async function upload(file: File | undefined) {
     if (!file) return;
-    setUploading(true); setError("");
+    setSelectedFile(file); setUploading(true); setError("");
     try {
       const item = await api.uploadVideo(token, file);
       setMedia((current) => [...current, item]);
@@ -190,7 +196,7 @@ function SessionControls({ token, status }: { token: string; status: Status }) {
     <select aria-label="Video demo" value={source} onChange={(event) => setSource(event.target.value)} disabled={status.running}>
       {media.map((item) => <option key={item.source ?? item.name} value={item.source ?? item.name}>{item.name} · {item.condition ?? "mixed"} · {item.size_mb} MB</option>)}
     </select>
-    <label className="upload-control">Tải video riêng<input aria-label="Tải video tùy chỉnh" type="file" accept="video/*" disabled={status.running || uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
+    <label className={`upload-control ${uploading ? "uploading" : ""}`} htmlFor="roadwatch-upload"><span className="upload-icon">↑</span><span><strong>{uploading ? "Đang tải lên…" : selectedFile ? selectedFile.name : "Thêm video"}</strong><small>{uploading ? "Đang lưu vào kho replay" : selectedFile ? `${(selectedFile.size / 1048576).toFixed(1)} MB · đã chọn` : "MP4 / MOV / MKV · tối đa 25 MB"}</small></span><input id="roadwatch-upload" aria-label="Tải video tùy chỉnh" type="file" accept="video/*" disabled={status.running || uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
     {!status.running && <button className="primary-button" onClick={() => run(() => api.start(token, source, startAt))} disabled={busy}>{busy ? "Đang xử lý…" : startAt > 0 ? `Tiếp tục từ ${formatTime(startAt)}` : "Bắt đầu phân tích"}</button>}
     {status.running && <>
       <button className="transport-button" onClick={() => run(() => status.playback === "paused" ? api.resume(token) : api.pause(token))} disabled={busy}>{status.playback === "paused" ? "▶ Tiếp tục" : "Ⅱ Tạm dừng"}</button>
@@ -253,7 +259,7 @@ function EngineerConsole({ token, status }: { token: string; status: Status }) {
   }
   return <main className="page engineer-page">
     <section className="engineer-head"><div><span className="eyebrow">ENGINEER CONSOLE</span><h1>Perception & Safety Evidence</h1><p>Quan sát pipeline, kiểm chứng cảnh báo và hiệu chỉnh ngưỡng có audit.</p></div><SessionControls token={token} status={status} /></section>
-    <div className="metrics-row"><Metric label="Processed FPS" value={status.metrics.processed_fps} /><Metric label="Sampling skip" value={`${((status.metrics.sampling_skip_ratio ?? status.metrics.frame_drop_ratio) * 100).toFixed(1)}%`} hint="Frame bỏ theo cadence cấu hình; không đồng nghĩa overload drop." /><Metric label="E2E P50" value={`${latencies.end_to_end?.p50_ms ?? 0} ms`} /><Metric label="E2E P95" value={`${latencies.end_to_end?.p95_ms ?? 0} ms`} /><Metric label="Stale audio" value={`${((status.metrics.audio_stale_event_rate ?? 0) * 100).toFixed(1)}%`} hint="Tỷ lệ audio hết hạn/bị thay thế trước khi phát; mục tiêu 0%." /></div>
+    <div className="metrics-row"><Metric label="Processed FPS" value={status.metrics.processed_fps} /><Metric label="Sampling skip" value={`${((status.metrics.sampling_skip_ratio ?? status.metrics.frame_drop_ratio) * 100).toFixed(1)}%`} hint="Frame bỏ theo cadence cấu hình; không đồng nghĩa overload drop." /><Metric label="E2E P50" value={`${latencies.end_to_end?.p50_ms ?? 0} ms`} /><Metric label="E2E P95" value={`${latencies.end_to_end?.p95_ms ?? 0} ms`} /><Metric label="Warmup" value={`${status.metrics.warmup_ms ?? 0} ms`} hint="Thời gian nạp model, tách khỏi E2E inference." /></div>
     <div className="engineer-grid">
       <VideoStage token={token} status={status} compact />
       <section className="panel model-panel"><div className="panel-title"><div><span>MODEL RUNTIME</span><strong>Perception health</strong></div><b className={status.degraded_reasons.length ? "warn" : "ok"}>{status.degraded_reasons.length ? "DEGRADED" : "HEALTHY"}</b></div>{Object.entries(status.models ?? {}).map(([name, model]) => <div className="model-row" key={name}><i className={model.error ? "bad" : model.loaded ? "good" : "idle"} /><div><strong>{name}</strong><span>{model.provider}</span></div><b>{model.loaded ? "Loaded" : model.error ? "Error" : "Standby"}</b></div>)}</section>

@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import logging
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -165,7 +166,16 @@ class OnnxYoloDetector:
                 requested = ["CUDAExecutionProvider", "CPUExecutionProvider"]
             else:
                 requested = ["CPUExecutionProvider"]
-            self.session = ort.InferenceSession(str(self.model_path), providers=requested)
+            options = ort.SessionOptions()
+            intra_threads = int(os.getenv("ROADWATCH_ORT_INTRA_OP_NUM_THREADS", "0"))
+            inter_threads = int(os.getenv("ROADWATCH_ORT_INTER_OP_NUM_THREADS", "0"))
+            if intra_threads > 0:
+                options.intra_op_num_threads = intra_threads
+            if inter_threads > 0:
+                options.inter_op_num_threads = inter_threads
+            self.session = ort.InferenceSession(
+                str(self.model_path), sess_options=options, providers=requested
+            )
             self.provider = self.session.get_providers()[0]
             if not self.names:
                 metadata = self.session.get_modelmeta().custom_metadata_map

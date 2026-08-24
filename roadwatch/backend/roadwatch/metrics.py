@@ -13,6 +13,8 @@ class MetricsCollector:
         self._latencies: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=window))
         self._lock = threading.RLock()
         self.started_at = time.time()
+        self.warmup_started_at: float | None = None
+        self.warmup_ms: float = 0.0
         self.captured_frames = 0
         self.processed_frames = 0
         self.dropped_frames = 0
@@ -26,6 +28,18 @@ class MetricsCollector:
         self.suppression_reasons: dict[str, int] = defaultdict(int)
         self.lane_frames = 0
         self.lane_eligible_frames = 0
+
+    def begin_warmup(self) -> None:
+        with self._lock:
+            self.warmup_started_at = time.perf_counter()
+
+    def finish_warmup(self) -> None:
+        with self._lock:
+            if self.warmup_started_at is not None:
+                self.warmup_ms = round(
+                    (time.perf_counter() - self.warmup_started_at) * 1000, 2
+                )
+                self.warmup_started_at = None
 
     def record_lane_quality(self, quality: float, threshold: float) -> None:
         with self._lock:
@@ -70,6 +84,7 @@ class MetricsCollector:
                 }
             return {
                 "uptime_seconds": round(elapsed, 1),
+                "warmup_ms": self.warmup_ms,
                 "captured_frames": self.captured_frames,
                 "processed_frames": self.processed_frames,
                 "dropped_frames": self.dropped_frames,

@@ -287,6 +287,84 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
 
 ## 12. Work Execution Ledger
 
+### WORK-20260824-008 — Cloud demo latency, session affinity và progressive replay
+
+**PRE-WORK**
+
+- Ngày: 2026-08-24.
+- Task liên quan: public Web GCP acceptance; khắc phục E2E P50/P95 khoảng
+  `31027.96 ms` và trường hợp chọn video mẫu nhưng quá 5 phút không có frame/kết quả.
+- Trạng thái: `IN_PROGRESS`.
+- Hiện trạng đã xác minh: Cloud Run `roadwatch-web`, revision `00006`, đang dùng
+  `ROADWATCH_CLOUD_MODE=web_demo`, CPU/ONNX; pipeline giữ state trong process,
+  frontend ưu tiên WebSocket + MJPEG, Cloud Run đang `concurrency=1`, `min=0`,
+  `max=2`. Public smoke trước đó chỉ xác minh được frame đầu sau warmup, chưa
+  chứng minh time-to-first-frame hoặc multi-request session ổn định.
+- Mục tiêu: giảm cold/warm request friction cho demo, bảo đảm start/status/stream
+  cùng nhìn thấy một session, hiển thị video preview ngay trong lúc inference đang
+  warmup, và không để metric E2E bị hiểu nhầm là thời gian chờ warmup.
+- Phạm vi dự kiến: `backend/roadwatch/api.py`, `pipeline.py`, `metrics.py`,
+  `frontend/src/main.tsx`, `frontend/src/api.ts`, `frontend/src/styles.css`,
+  `deploy/gcp/cloudbuild.yaml`, tests và tài liệu acceptance. Không đổi model
+  promotion, safety threshold, critical-path edge semantics hoặc commit asset nặng.
+- Kế hoạch: (1) đo lại status/log/latency public; (2) thêm cloud polling và
+  progressive source preview có auth; (3) cô lập cold-start metric với inference
+  E2E; (4) cấu hình một instance demo ấm với concurrency phục vụ đồng thời;
+  (5) làm lại upload control theo UI hiện hữu; (6) chạy full test/build/deploy;
+  (7) smoke start video mẫu, polling status, file preview và metric sau deploy.
+- Definition of Done: local test/build pass; start trả về dưới 2 giây khi instance
+  warm; public status có `frame_id>0` hoặc `error` quan sát được trong tối đa
+  90 giây sau start; preview video xuất hiện trước inference result; E2E metric
+  không tính warmup; không còn UI phụ thuộc duy nhất vào WebSocket/MJPEG; không
+  có session/video state leak giữa hai video.
+- Guardrail/rollback: Cloud Run chỉ là replay/evaluation plane, không phải FCW/LDW
+  critical path; không tuyên bố realtime edge từ cloud benchmark; giữ revision
+  `roadwatch-web-00006-4gc` và commit `bafc5c3` làm rollback; `min=1` chỉ là demo
+  profile có chi phí, có thể trả về `min=0` sau demo; human gate chỉ còn cần
+  kiểm tra URL/UX public.
+
+**POST-WORK — 2026-08-24**
+
+- Trạng thái cuối: `PASS` cho Cloud public latency/interaction gate; full cloud
+  perception vẫn `PARTIAL` vì sign/lane/TTS cố ý không nằm trong CPU fast profile.
+- Root cause đo trực tiếp trên revision cũ: object `89.117,27 ms`, lane
+  `560.955,81 ms`, E2E frame đầu `650.359,62 ms`; state trong process kết hợp
+  `concurrency=1`, `max=2`, WebSocket/MJPEG và CPU throttling làm UI treo hoặc
+  nhìn sai session. Khi đổi video, `frame_id` cũ cũng chưa reset.
+- Thay đổi thực tế: frontend chuyển sang polling 500 ms; thêm authenticated
+  `/api/media/file` hỗ trợ Range/progressive preview; thêm stage/warmup metric;
+  sửa lane-disable guard; thêm ONNX Runtime thread config; reset toàn bộ visual
+  state khi start; làm lại upload control; Cloud Run dùng 4 CPU/8 GiB,
+  concurrency 8, session affinity, min=max=1, CPU boost và no-throttling.
+- Model decision: local/AAOS release không đổi — object `baseline_coco`, traffic
+  sign `roadwatch_sign_phase2`, lane `yolop`. Cloud fast dùng artifact export
+  `yolo11n_320.onnx` từ baseline; sign/lane/audio tắt riêng trên cloud. Object V2
+  vẫn rejected (event recall 0,80→0,60; FAR 3,8462→4,6154/phút), UFLDv2 vẫn fail
+  edge FPS gate; không hạ promotion gate để lấy model mới hơn.
+- GCP evidence: final Cloud Build
+  `3487d8f7-a876-4637-ac36-35d1f24a2484` success; revision
+  `roadwatch-web-00010-rbk`, traffic 100%; fallback URL giữ nguyên. Runtime nạp
+  `yolo11n_320.onnx`, provider CPU, error null; start `189 ms`, warmup
+  `874,86 ms`; sau 2 giây có 6 frame + track; 37 sample đạt processed FPS
+  `5,57`, E2E p50 `34,24 ms`, p95 `71,25 ms`.
+- Replay evidence: `/api/media/file` trả HTTP `206 video/mp4`; đổi
+  `test_video1`→`test_video10` reset `source_key=test_video10.mp4`, `frame_id=0`,
+  `source_time=0`, tracks/signs rỗng. Upload UI đã đồng bộ white/blue card style.
+- Verification local: full Python regression `147/147` pass; TypeScript build
+  pass; Vite production build pass; targeted cloud/session tests `13/13` pass;
+  `git diff --check` pass trước final docs/ledger check.
+- Limitation: cloud object-only là public replay profile, không phải edge safety
+  benchmark; muốn full sign/lane/TTS trên cloud cần GPU/async worker hoặc cached
+  results. `min=1` + CPU always allocated có chi phí liên tục; signed resumable
+  upload, cached result, Cloud SQL/PubSub worker, official DNS chưa hoàn tất.
+- Rollback: revision `roadwatch-web-00006-4gc` và commit `bafc5c3`; có thể hạ
+  `min=0`, bật CPU throttling hoặc chuyển traffic về revision cũ. Không xóa model,
+  video, user RW-10 queue hoặc lịch sử Cloud Build.
+- Bước tiếp theo: human smoke UI public; sau đó triển khai signed upload + async
+  result worker/cached results và map official domain. Chi tiết tại
+  `reports/CLOUD_DEMO_LATENCY_REMEDIATION.md`.
+
+
 ### WORK-20260824-003 — Chốt kiến trúc hợp nhất Edge + Web GCP + AAOS
 
 **PRE-WORK**

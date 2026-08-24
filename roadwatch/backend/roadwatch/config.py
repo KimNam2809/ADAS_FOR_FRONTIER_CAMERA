@@ -76,6 +76,24 @@ class ConfigManager:
             base["app"]["max_processed_fps"] = min(
                 float(base["app"].get("max_processed_fps", 12.0)), 6.0
             )
+            if os.getenv("ROADWATCH_CLOUD_IMAGE_SIZE"):
+                base["inference"]["image_size"] = int(os.environ["ROADWATCH_CLOUD_IMAGE_SIZE"])
+            if os.getenv("ROADWATCH_CLOUD_FAST", "0") == "1":
+                # Cloud Run is a public replay/evaluation plane, not the edge
+                # safety path. On CPU, YOLOP and the sign model can monopolize
+                # a container for minutes on the first frame. Keep a useful
+                # object-only preview and leave full perception to local/AAOS.
+                base["inference"]["enable_lane"] = False
+                base["inference"]["enable_signs"] = False
+                base["inference"]["object_onnx_model"] = "yolo11n_320.onnx"
+                base["inference"]["object_model"] = "yolo11n.pt"
+                base["inference"]["object_profiles"]["baseline_coco"]["onnx_model"] = "yolo11n_320.onnx"
+                base["inference"]["object_interval"] = 1
+                base["inference"]["lane_interval"] = 999999
+                base["inference"]["sign_interval"] = 999999
+                base["app"]["max_processed_fps"] = min(
+                    float(base["app"].get("max_processed_fps", 6.0)), 4.0
+                )
         return base
 
     def snapshot(self) -> dict[str, Any]:
