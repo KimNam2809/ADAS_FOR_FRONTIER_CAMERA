@@ -65,6 +65,17 @@ class ConfigManager:
             base["inference"]["lane_profile"] = os.environ["ROADWATCH_LANE_PROFILE"]
         if os.getenv("ROADWATCH_MAX_FPS"):
             base["app"]["max_processed_fps"] = float(os.environ["ROADWATCH_MAX_FPS"])
+        if os.getenv("ROADWATCH_CLOUD_MODE"):
+            # Cloud Run is an evaluation/replay plane. Keep the deterministic
+            # edge profile untouched while avoiding a PyTorch classifier cold
+            # start in the public CPU service.
+            base["inference"]["device"] = "cpu"
+            base["inference"]["runtime"] = "cpu"
+            base["inference"]["prefer_onnx_detectors"] = True
+            base["inference"]["speed_classifier_model"] = "__cloud_speed_classifier_disabled__.pt"
+            base["app"]["max_processed_fps"] = min(
+                float(base["app"].get("max_processed_fps", 12.0)), 6.0
+            )
         return base
 
     def snapshot(self) -> dict[str, Any]:

@@ -864,21 +864,102 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
 
 **POST-WORK — 2026-08-24**
 
-- Trạng thái cuối: `PASS` cho mục tiêu cập nhật blueprint domain; `GCP_DEPLOYMENT`
-  và DNS mapping vẫn `NOT_DEPLOYED`.
-- Thay đổi thực tế: bổ sung official live URL `https://c3-roadwatch-162.io.vn`,
-  fallback `run.app`, quy trình custom domain/DNS/managed TLS, migration không
-  đổi service/backend, và các cấu hình CORS/base URL/cookie/monitoring cần kiểm tra.
-- Bằng chứng: tài liệu đã nêu rõ `run.app` chỉ là fallback, custom domain là lớp
-  ingress; `git diff --check` đạt sau cập nhật.
-- Decision: ưu tiên URL `c3-roadwatch-162.io.vn` cho Mentor/Ban tổ chức; nếu chưa
-  có quyền DNS thì dùng `run.app` tạm thời để test nội bộ.
-- Khác kế hoạch: không deploy domain hoặc thay đổi GCP vì chưa có project/DNS
-  credentials và yêu cầu hiện tại chỉ là cập nhật kiến trúc.
-- Limitation: cần domain owner tạo DNS records do Cloud Run/Load Balancer cung
-  cấp; chứng chỉ HTTPS và URL chỉ được xác nhận sau khi mapping thực tế hoàn tất.
-- Bước tiếp theo: triển khai Cloud Run service, sau đó map domain chính thức và
-  chạy public URL acceptance gate trước khi gửi cho ban tổ chức.
+- Trạng thái cuối: `PASS`.
+- Thay đổi thực tế: tạo local backup commit `c7acb4f`, merge checkpoint `63d66a9`,
+  sau đó tạo clean fast-forward snapshot `d144156` dựa trên remote hiện tại;
+  giữ local fallback branch `roadwatch_pre_gcp_local`.
+- Bằng chứng: `origin/roadwatch_project` trỏ đúng `d144156`; local `HEAD` bằng
+  remote; scan remote tree không có model/video/dataset/artifact nặng hoặc `.env`.
+- Decision: backup đủ điều kiện làm rollback trước triển khai; remote history được
+  giữ, không force-push; các report Kaggle nặng chỉ bị loại khỏi Git index, file
+  local không bị xóa.
+- Khác kế hoạch: merge thường bị Windows chặn unlink nên dùng merge strategy
+  `ours` và sau đó tạo clean snapshot fast-forward; đây là thay đổi lịch sử Git
+  có kiểm soát, không ảnh hưởng source local.
+- Limitation: các thay đổi ngoài `roadwatch/` vẫn dirty/untracked và không thuộc
+  backup; GCP project/IAM/billing/domain chưa được cung cấp.
+- Bước tiếp theo: tạo PRE-WORK mới cho Phase A/B implementation; không dùng branch
+  fallback làm nơi phát triển deployment.
+
+### WORK-20260824-007 — Triển khai Phase A/B: local parity và GCP public-demo scaffold
+
+**PRE-WORK**
+
+- Ngày: 2026-08-24.
+- Task liên quan: triển khai theo `docs/UNIFIED_DEPLOYMENT_ARCHITECTURE.md` sau
+  backup `d144156`.
+- Trạng thái: `IN_PROGRESS`.
+- Mục tiêu: biến blueprint thành implementation có thể chạy local trước, sau đó
+  deploy lên GCP khi có project/IAM/billing; ưu tiên Video Library, Custom Upload,
+  Cached/Fresh run semantics và giữ Edge Core ngoài cloud critical path.
+- Baseline: local Web/FastAPI/React/AAOS replay đã có; chưa có GCP IaC/service
+  manifest, upload queue contract hoặc public URL; `origin/roadwatch_project`
+  đã có rollback checkpoint.
+- Phạm vi cho đợt này: thêm deployment contracts, GCP Docker/Cloud Run config,
+  upload/job/status interfaces, sample library manifest và local tests/docs;
+  không train model, không upload video/model, không đặt secret vào repo, không
+  triển khai CAN/VinFast camera.
+- Kế hoạch: (1) preflight current API/frontend; (2) viết config/schema cho
+  `library`, `custom upload`, `run_id`, `cached/fresh`; (3) thêm GCP deployment
+  scaffold dùng Cloud Run/Cloud Storage/Pub/Sub/Cloud SQL/Secret Manager; (4)
+  nối local mock/in-memory adapter để test không cần GCP; (5) chạy tests/build;
+  (6) chỉ yêu cầu GCP credentials nếu local scaffold pass.
+- DoD: local tests pass; deployment files không chứa secret; `run_id` isolation
+  được kiểm tra; public deployment status ghi `BLOCKED` nếu thiếu project/IAM;
+  không đổi default safety profile hoặc đưa cloud vào critical alert path.
+- Guardrail/rollback: giữ `baseline_coco`, không đổi model promotion; mọi GCP
+  worker là asynchronous evaluation; rollback bằng `d144156`/branch fallback;
+  không force-push và không xóa video/model local.
+
+**POST-WORK — 2026-08-24**
+
+- Trạng thái cuối: `PARTIAL_PASS`. Local parity và GCP public replay/upload đã
+  pass; signed resumable upload, Pub/Sub worker, cached-result plane, Cloud SQL
+  và official DNS mapping chưa triển khai.
+- Thay đổi thực tế: thêm `catalog.py`/`uploads.py` cho Video Library và upload
+  bounded; thêm `asset_bootstrap.py`/`asset_store.py` cho GCS model/video và
+  durable custom upload; thêm `run_id`, `source_kind`, `analysis_mode`,
+  `source_key` vào session/event contract; cập nhật FastAPI/React upload UI;
+  thêm `deploy/gcp/cloudbuild.yaml`, `deploy/gcp/README.md` và
+  `configs/cloud_assets.json`.
+- GCP target đã xác minh: project `c3-roadwatch-162`, Artifact Registry
+  `roadwatch`, bucket `gs://c3-roadwatch-162-roadwatch-assets`, region
+  `asia-southeast1`, service `roadwatch-web`, revision cuối
+  `roadwatch-web-00006-4gc`; final Cloud Build
+  `19698631-f922-46a1-b3f5-b1f772cd8fe7`. URL fallback hiện tại:
+  `https://roadwatch-web-bx6lfekcba-as.a.run.app`.
+- Bằng chứng local: full regression `129/129` pass; deployment contract tests
+  `7/7` pass; Python compile/diff-check pass; TypeScript `tsc -b` pass; Vite
+  production build pass khi chạy binary local do npm global bị hỏng.
+- Bằng chứng public: login driver pass; Video Library trả 4 video và duration;
+  fresh replay library đạt `frame_id=1`, `processed_frames=1` với object
+  `yolo11n.onnx`, sign `ONNX/CPUExecutionProvider`, lane `CPUExecutionProvider`;
+  custom upload `14.55 MB` trả `durable=true`, `storage_mode=gcs`, SHA-256
+  `736121b31a414b2995a549d7811c7bfdc2e18d2302588e6bb4c451b46adc67`; GCS object
+  tồn tại và fresh replay từ `uploads/...` đạt `frame_id=1`.
+- Final revision health xác nhận asset bootstrap `enabled=true` và tải đủ 9
+  allowlisted asset; replay lại trên revision `00006` đạt `frame_id=1`,
+  `processed_frames=1`, object `yolo11n.onnx`, sign `ONNX/CPUExecutionProvider`
+  và lane `CPUExecutionProvider`.
+- Decision: Cloud Run là public evaluation/replay plane, không phải FCW/LDW/TTS
+  critical path. Cloud profile ép ONNX/CPU, tắt audio và bỏ PyTorch speed
+  classifier khỏi warmup; local/AAOS profile không đổi. Health có thể còn
+  `degraded` vì R0 release manifest yêu cầu PT/hash artifacts không đóng gói
+  trong Cloud Run; đây không phải bằng chứng production-ready.
+- Khác kế hoạch: Docker daemon local không chạy nên dùng Cloud Build; lần đầu
+  cần sửa IAM source bucket/Artifact Registry/runtime GCS reader; một lần
+  warmup trước đó chọn PT vì asset bootstrap chạy sau service construction, đã
+  sửa bằng rebuild perception sau bootstrap. Các lỗi/version đều giữ trong
+  Cloud Build history, không force-push.
+- Limitation: direct Cloud Run multipart upload bị khóa `25 MB`; video dài cần
+  signed GCS resumable upload. Cached result, Pub/Sub worker, Cloud SQL/HITL
+  persistence và `https://c3-roadwatch-162.io.vn` chưa được acceptance; domain
+  owner phải map DNS/managed TLS.
+- Rollback: remote backup `d144156` và local branch `roadwatch_pre_gcp_local`;
+  không xóa model/video local hoặc GCS asset.
+- Bước tiếp theo: triển khai signed upload + upload completion endpoint, tách
+  replay worker bất đồng bộ, thêm cloud health profile, publish cached results,
+  rồi map official domain và chạy public URL acceptance gate.
 
 ### WORK-20260824-006 — Backup roadwatch_project trước triển khai GCP
 

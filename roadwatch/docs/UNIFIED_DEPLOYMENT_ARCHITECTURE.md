@@ -3,9 +3,10 @@
 > Phiên bản: 2026-08-24  
 > Mục tiêu: một kiến trúc dùng chung cho Web demo công khai, AAOS emulator và
 > Edge/ô tô thật.  
-> **Official live URL khuyên dùng:** `https://c3-roadwatch-162.io.vn`  
-> Trạng thái: blueprint đã chốt; GCP public deployment chưa được tuyên bố là đã
-> triển khai cho tới khi có URL và evidence kiểm thử.
+> **Official live URL khuyên dùng sau DNS mapping:** `https://c3-roadwatch-162.io.vn`
+> Trạng thái: R0 Cloud Run public fallback đã triển khai và smoke-tested trong
+> project `c3-roadwatch-162`; custom domain/DNS và worker/cached-result plane vẫn
+> chưa pass acceptance.
 
 ## 1. Quyết định kiến trúc
 
@@ -283,6 +284,24 @@ tất, còn Cloud Run Service phù hợp API/web endpoint. Tham chiếu chính t
 [Cloud Run WebSockets](https://docs.cloud.google.com/run/docs/tutorials/websockets),
 [Pub/Sub architecture](https://docs.cloud.google.com/pubsub/architecture).
 
+#### 4.2.1. Deployment checkpoint thực tế — 2026-08-24
+
+- GCP project: `c3-roadwatch-162`; region: `asia-southeast1`.
+- Artifact Registry: repository `roadwatch`; Cloud Run service: `roadwatch-web`;
+  revision smoke-tested: `roadwatch-web-00005-8mc`.
+- Fallback URL: `https://roadwatch-web-bx6lfekcba-as.a.run.app`.
+- GCS asset bucket: `gs://c3-roadwatch-162-roadwatch-assets`; allowlist model/video
+  nằm ngoài Git, được materialize lúc startup.
+- Local parity và public smoke: login, 4-item Video Library, fresh replay
+  `frame_id=1`, direct upload 14.55 MB có SHA-256 và `durable=true`, fresh replay
+  từ `uploads/{run_id}/...` pass.
+- Cloud profile dùng ONNX/CPU, audio disabled; đây là evaluation/replay plane,
+  không phải FCW/LDW/TTS critical path. Direct multipart upload giới hạn 25 MB;
+  video dài cần signed GCS resumable upload.
+- Health có thể báo `degraded` theo R0 static release manifest vì container cloud
+  không chứa PT/hash artifacts; không dùng trạng thái này để tuyên bố model đã
+  được promote hoặc hệ thống production-ready.
+
 ### 4.3. Public demo acceptance gate
 
 Trước khi gửi URL cho ban tổ chức, phải có evidence:
@@ -304,6 +323,10 @@ Trước khi gửi URL cho ban tổ chức, phải có evidence:
   `cloud_demo` hay `offline_edge`.
 - Có quota upload, giới hạn dung lượng/thời lượng, loại file cho phép, rate
   limit, xóa dữ liệu demo và log audit.
+
+Checkpoint hiện tại mới pass các mục login/library/direct upload/fresh replay
+ngắn; chưa pass cached result, run 60 giây, metrics artifact download, signed
+resumable upload, quota/rate-limit và official domain mapping.
 
 ### 4.4. Chính sách domain và URL public
 

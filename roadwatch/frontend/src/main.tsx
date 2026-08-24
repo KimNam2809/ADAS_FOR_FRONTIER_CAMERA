@@ -150,9 +150,10 @@ function SessionControls({ token, status }: { token: string; status: Status }) {
   const [source, setSource] = useState("test_video10.mp4");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [seekDraft, setSeekDraft] = useState(0);
   const [dragging, setDragging] = useState(false);
-  useEffect(() => { api.media(token).then((items) => { setMedia(items); if (!items.some((item) => item.name === source) && items.length) setSource(items[0].name); }).catch((reason) => setError(String(reason))); }, [token]);
+  useEffect(() => { api.media(token).then((items) => { setMedia(items); const values = items.map((item) => item.source ?? item.name); if (!values.includes(source) && values.length) setSource(values[0]); }).catch((reason) => setError(String(reason))); }, [token]);
   useEffect(() => { if (!dragging) setSeekDraft(status.source_time ?? 0); }, [status.source_time, dragging]);
   const formatTime = (seconds: number) => {
     const safe = Math.max(0, Math.floor(seconds || 0));
@@ -168,15 +169,28 @@ function SessionControls({ token, status }: { token: string; status: Status }) {
     finally { setBusy(false); }
   }
   const startAt = status.source === source && status.source_time < status.duration_seconds ? status.source_time : 0;
-  const selectedSession = status.source === source;
+  const selectedSession = (status.source_key ?? status.source) === source || status.source === source.split("/").pop();
+  async function upload(file: File | undefined) {
+    if (!file) return;
+    setUploading(true); setError("");
+    try {
+      const item = await api.uploadVideo(token, file);
+      setMedia((current) => [...current, item]);
+      setSource(item.source ?? item.name);
+      setSeekDraft(0);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Không thể tải video");
+    } finally { setUploading(false); }
+  }
   async function commitSeek() {
     setDragging(false);
     if (status.running && status.seekable) await run(() => api.seek(token, seekDraft));
   }
   return <div className="session-controls">
     <select aria-label="Video demo" value={source} onChange={(event) => setSource(event.target.value)} disabled={status.running}>
-      {media.map((item) => <option key={item.name} value={item.name}>{item.name} · {item.size_mb} MB</option>)}
+      {media.map((item) => <option key={item.source ?? item.name} value={item.source ?? item.name}>{item.name} · {item.condition ?? "mixed"} · {item.size_mb} MB</option>)}
     </select>
+    <label className="upload-control">Tải video riêng<input aria-label="Tải video tùy chỉnh" type="file" accept="video/*" disabled={status.running || uploading} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
     {!status.running && <button className="primary-button" onClick={() => run(() => api.start(token, source, startAt))} disabled={busy}>{busy ? "Đang xử lý…" : startAt > 0 ? `Tiếp tục từ ${formatTime(startAt)}` : "Bắt đầu phân tích"}</button>}
     {status.running && <>
       <button className="transport-button" onClick={() => run(() => status.playback === "paused" ? api.resume(token) : api.pause(token))} disabled={busy}>{status.playback === "paused" ? "▶ Tiếp tục" : "Ⅱ Tạm dừng"}</button>

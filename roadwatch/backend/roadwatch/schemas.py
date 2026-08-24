@@ -14,6 +14,9 @@ class SessionRequest(BaseModel):
     source: str | int
     start_seconds: float = Field(default=0.0, ge=0.0)
     duration_seconds: float | None = Field(default=None, gt=0.0, le=3600.0)
+    run_id: str | None = Field(default=None, min_length=8, max_length=80)
+    source_kind: Literal["library", "upload", "camera"] = "library"
+    analysis_mode: Literal["fresh", "cached"] = "fresh"
 
 
 class SeekRequest(BaseModel):

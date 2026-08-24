@@ -52,6 +52,7 @@ class Storage:
                     lifecycle_status TEXT NOT NULL DEFAULT 'accepted',
                     audio_status TEXT NOT NULL DEFAULT 'not_requested',
                     suppression_reason TEXT
+                    ,run_id TEXT
                 );
                 CREATE TABLE IF NOT EXISTS audit_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,6 +82,7 @@ class Storage:
             "suppression_reason": "TEXT",
             "display_message": "TEXT",
             "spoken_message": "TEXT",
+            "run_id": "TEXT",
         }
         for name, sql_type in additions.items():
             if name not in existing:
@@ -119,7 +121,8 @@ class Storage:
                     confidence, risk_score,
                     object_id, location, evidence_json, audio_action, event_uuid, frame_id,
                     source_time, expires_at, lifecycle_status, audio_status, suppression_reason
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ,run_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     event["created_at"],
@@ -141,6 +144,7 @@ class Storage:
                     event.get("lifecycle_status", "accepted"),
                     event.get("audio_status", "not_requested"),
                     event.get("suppression_reason"),
+                    event.get("run_id"),
                 ),
             )
             return int(cursor.lastrowid)

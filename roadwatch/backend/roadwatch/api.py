@@ -7,15 +7,19 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .auth import TokenManager
+from .asset_bootstrap import bootstrap_assets
+from .asset_store import materialize_media_source, persist_uploaded_media
+from .catalog import media_catalog
 from .config import ConfigManager, PROJECT_ROOT, media_inventory
 from .pipeline import RoadWatchService
 from .schemas import ConfigPatch, LoginRequest, SeekRequest, SessionRequest, TokenResponse, User
 from .storage import Storage
+from .uploads import save_upload
 
 
 LOGGER = logging.getLogger(__name__)
@@ -29,6 +33,12 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        app.state.asset_bootstrap = bootstrap_assets()
+        # Perception is constructed before FastAPI lifespan. If cloud assets
+        # were materialized during startup, rebuild adapters so existence-based
+        # ONNX selection sees the files and never falls back to PT/download.
+        if app.state.asset_bootstrap.get("enabled") and not app.state.asset_bootstrap.get("error"):
+            service.reload_config()
         if start_pipeline or config_manager.snapshot()["app"].get("auto_start", False):
             try:
                 service.start()
@@ -65,7 +75,11 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
 
     @app.get("/api/health")
     def health() -> dict[str, Any]:
-        return service.health()
+        result = service.health()
+        result["asset_bootstrap"] = getattr(
+            app.state, "asset_bootstrap", {"enabled": False, "reason": "not_started"}
+        )
+        return result
 
     @app.post("/api/auth/login", response_model=TokenResponse)
     def login(request: LoginRequest) -> TokenResponse:
@@ -84,15 +98,56 @@ def create_app(start_pipeline: bool = False, database_path: Path | None = None) 
 
     @app.get("/api/media")
     def media(_: User = Depends(current_user)) -> list[dict[str, Any]]:
-        return media_inventory()
+        return media_catalog()
+
+    @app.get("/api/library")
+    def library(_: User = Depends(current_user)) -> dict[str, Any]:
+        items = media_catalog()
+        return {
+            "schema_version": "roadwatch.library.v1",
+            "items": items,
+            "cached_results": "not_available_local_runtime",
+        }
+
+    @app.post("/api/uploads")
+    def upload_video(
+        file: UploadFile = File(...), _: User = Depends(current_user)
+    ) -> dict[str, Any]:
+        try:
+            result = save_upload(file)
+            result.update(persist_uploaded_media(str(result["source"])))
+            return result
+        except (ValueError, OSError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            LOGGER.exception("Không thể lưu upload vào asset store")
+            raise HTTPException(status_code=503, detail="Kho lưu trữ video cloud chưa sẵn sàng") from exc
 
     @app.post("/api/session/start")
     def start_session(
         request: SessionRequest, _: User = Depends(current_user)
     ) -> dict[str, Any]:
         try:
-            service.start(request.source, request.start_seconds, request.duration_seconds)
-            return {"ok": True, "source": request.source}
+            if isinstance(request.source, str) and not request.source.isdigit():
+                materialized = materialize_media_source(request.source)
+                if not materialized.get("available"):
+                    raise FileNotFoundError(f"Không tìm thấy video: {request.source}")
+            service.start(
+                request.source,
+                request.start_seconds,
+                request.duration_seconds,
+                request.run_id,
+                request.source_kind,
+                request.analysis_mode,
+            )
+            current = service.status()
+            return {
+                "ok": True,
+                "source": request.source,
+                "run_id": current.get("run_id"),
+                "session_id": current.get("session_id"),
+                "analysis_mode": current.get("analysis_mode", request.analysis_mode),
+            }
         except (ValueError, FileNotFoundError, RuntimeError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

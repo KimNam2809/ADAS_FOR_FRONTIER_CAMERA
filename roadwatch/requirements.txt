@@ -10,3 +10,5 @@ onnxruntime-directml>=1.20,<2; platform_system == "Windows"
 pyttsx3>=2.98; platform_system == "Windows"
 piper-tts>=1.4,<2
 python-dotenv>=1.0,<2
+python-multipart>=0.0.20,<1
+google-cloud-storage>=2.18,<3

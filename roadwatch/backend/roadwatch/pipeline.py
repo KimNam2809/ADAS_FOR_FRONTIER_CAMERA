@@ -90,12 +90,18 @@ class RoadWatchService:
         source: str | int | None = None,
         start_seconds: float = 0.0,
         duration_seconds: float | None = None,
+        run_id: str | None = None,
+        source_kind: str = "library",
+        analysis_mode: str = "fresh",
     ) -> None:
         if self.is_running:
             raise RuntimeError("Một phiên phân tích đang chạy")
         config = self.config_manager.snapshot()
         source = source if source is not None else config["app"]["default_source"]
         resolved = ConfigManager.media_source(source)
+        if analysis_mode == "cached":
+            raise RuntimeError("Cached result chưa được cấu hình cho runtime local; dùng fresh run")
+        run_id = run_id or str(uuid.uuid4())
         session_id = str(uuid.uuid4())
         self._stop.clear()
         self._pause.clear()
@@ -115,6 +121,10 @@ class RoadWatchService:
                 "mode": "loading" if isinstance(resolved, str) else "camera",
                 "playback": "loading",
                 "session_id": session_id,
+                "run_id": run_id,
+                "source_key": str(source) if isinstance(source, str) else None,
+                "source_kind": source_kind,
+                "analysis_mode": analysis_mode,
                 "source": Path(resolved).name if isinstance(resolved, str) else f"camera:{resolved}",
                 "source_time": round(float(start_seconds), 3),
                 "duration_seconds": 0.0,
@@ -128,7 +138,7 @@ class RoadWatchService:
         self.audio.start()
         self._thread = threading.Thread(
             target=self._run,
-            args=(resolved, float(start_seconds), duration_seconds, session_id),
+            args=(resolved, float(start_seconds), duration_seconds, session_id, run_id),
             name="roadwatch-pipeline",
             daemon=True,
         )
@@ -186,6 +196,7 @@ class RoadWatchService:
         start_seconds: float = 0.0,
         duration_seconds: float | None = None,
         session_id: str | None = None,
+        run_id: str | None = None,
     ) -> None:
         config = self.config_manager.snapshot()
         app_config = config["app"]
@@ -222,11 +233,15 @@ class RoadWatchService:
                     "seekable": isinstance(source, str),
                     "playback": "playing",
                     "session_id": session_id,
+                    "run_id": run_id,
+                    "source_key": str(source) if isinstance(source, str) else None,
                     "error": None,
                 }
             )
         try:
+            LOGGER.info("RoadWatch warmup started: run_id=%s", run_id)
             self.perception.warmup()
+            LOGGER.info("RoadWatch warmup completed: run_id=%s", run_id)
             while not self._stop.is_set():
                 seek_target: float | None = None
                 with self._control_lock:
@@ -332,6 +347,7 @@ class RoadWatchService:
                 for item in self.governor.last_suppressed:
                     self.metrics.record_suppression(item.get("suppression_reason", "unknown"))
                 for event in emitted:
+                    event["run_id"] = run_id
                     event_id = self.storage.add_event(event)
                     event["id"] = event_id
                     self._recent_events.appendleft(event)

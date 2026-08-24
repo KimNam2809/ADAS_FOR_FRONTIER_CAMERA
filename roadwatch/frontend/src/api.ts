@@ -4,7 +4,16 @@ export type User = { username: string; role: Role };
 
 export type LoginResult = { token: string; user: User };
 
-export type MediaItem = { name: string; size_mb: number };
+export type MediaItem = {
+  name: string;
+  source?: string;
+  relative_source?: string;
+  source_kind?: "library" | "upload";
+  condition?: string;
+  size_mb: number;
+  duration_seconds?: number;
+  cached_result?: boolean;
+};
 
 export type AlertEvent = {
   id?: number;
@@ -33,6 +42,7 @@ export type Status = {
   running: boolean;
   mode: string;
   source?: string;
+  source_key?: string;
   frame_id: number;
   source_fps: number;
   source_time: number;
@@ -92,6 +102,21 @@ export const api = {
     }),
   status: (token: string) => request<Status>("/api/status", token),
   media: (token: string) => request<MediaItem[]>("/api/media", token),
+  library: (token: string) => request<{ schema_version: string; items: MediaItem[] }>("/api/library", token),
+  uploadVideo: async (token: string, file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({ detail: "Không thể tải video" }));
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    return response.json() as Promise<MediaItem & { run_id: string; sha256: string }>;
+  },
   start: (token: string, source: string, startSeconds = 0, durationSeconds?: number) =>
     request<{ ok: boolean }>("/api/session/start", token, {
       method: "POST",
