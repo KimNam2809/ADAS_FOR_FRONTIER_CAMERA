@@ -1,65 +1,77 @@
-# Python & Environments
+# Local environments and caches
 .venv/
+.cache/
+artifacts/
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.pytest_cache/
+.ruff_cache/
 
-# IDE / OS specific
-.vscode/
+# Runtime data
+data/*
+!data/.gitkeep
+logs/
+*.db
+*.db-shm
+*.db-wal
+
+# Heavy local assets (download/mount separately)
+models/*
+!models/.gitkeep
+media/*
+!media/.gitkeep
+voices/*
+!voices/.gitkeep
+datasets/*
+!datasets/README.md
+!datasets/.gitkeep
+
+# Frontend build
+frontend/node_modules/
+frontend/dist/
+frontend/dist-local/
+frontend/dist-playback-test/
+frontend/dist-ui-*/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend/dist-landing/
+frontend/.cache-landing/
+frontend/.landing-ssr/
+frontend/landing-public/media/
+frontend/landing-public/documents/
+frontend/landing-public/media-manifest.json
+
+# Android Automotive generated files
+android/**/.gradle/
+android/**/build/
+android/**/local.properties
+android/**/*.iml
+
+# IDE / OS
 .idea/
+.vscode/
 .DS_Store
 Thumbs.db
 
-# YOLO / Ultralytics specific
-runs/
-# Ignore models accidentally downloaded to root directory
-yolov8n.pt
-yolov9n.pt
-yolov10n.pt
-models/yolov10n_openvino_model/
+# Local secrets and overrides
+.env
+configs/runtime.json
+reports/*.json
+reports/*.csv
+reports/*.mp4
+reports/*.jpg
+reports/review/
+reports/*.db
+reports/ab-*.json
+reports/runtime-eval-*.json
+reports/events-eval-*.db
 
-# Project Output Directories
-output/*
-!output/.gitkeep
-outputs/*
-!outputs/.gitkeep
-
-# Media & Data (Ignore large files to prevent Git LFS issues, keep the directory structure)
-media/*
-!media/.gitkeep
-data/
-datasets/
-calibration/
-benchmark/videos/
-
-# Accidental / Test Model Directories (As requested)
-model/
-models_test/
-
-# Generated / Compiled Models (These should be built natively on the target device like EC2/Jetson)
-*.engine
-*.onnx
-*.trt
-*.pt
-*.bin
-*.xml
+# Kaggle/exported heavy evidence stays local or in external storage
+reports/**/*.jsonl
+reports/**/*.zip
+reports/**/*.jpg
+reports/**/*.jpeg
+reports/**/*.png
+reports/**/*.mp4
+reports/kaggle-*/
