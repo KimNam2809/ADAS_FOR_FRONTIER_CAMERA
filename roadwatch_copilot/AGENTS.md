@@ -4266,3 +4266,28 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
   kiểm tra hình ảnh.
 - Fallback: giữ nguyên `c3_162_roadwatch_slide_demo.pdf` và các asset nguồn;
   không thay đổi model, backend, frontend, AAOS, TTS hoặc deployment runtime.
+
+## POST-WORK — RW-REPO-HANDOFF-COPILOT-20260901
+
+- Trạng thái: **PASS_LOCAL_PACKAGE / PUSHED**.
+- Đã lấy đúng `P-162/main` tại commit `83c5654fa5fea38f56be08cb1e7c15cdfa9f541a`
+  và hợp nhất landing page vào entrypoint frontend duy nhất; `/` là landing,
+  `/app/` là RoadWatch Driver/Engineer E2E.
+- Đã tạo `roadwatch_copilot/` gồm backend perception → tracking → risk →
+  traffic context → alert/audio/TTS → UI, AAOS, Docker, GCP manifests, docs,
+  tests, SLM optional và landing assets. README có hướng dẫn setup, chạy,
+  tài khoản demo, Drive bootstrap và đặt asset thủ công.
+- Đã bổ sung `scripts/download_drive_assets.py`, `configs/external_assets.json`
+  và `requirements-assets.txt`; setup tự tải model/media từ Drive public khi
+  thiếu, có `-SkipDriveAssets` và không xóa asset sẵn có.
+- Verification: Vite build PASS; landing integration 7/7 PASS; backend pytest
+  **101 passed, 6 skipped** (skip chỉ vì Kaggle SDK/model ngoài Git chưa có);
+  `compileall` PASS; Drive bootstrap `--dry-run` PASS. Các warning whitespace
+  kế thừa trong tài liệu không ảnh hưởng build/runtime.
+- Git handoff: tạo và push nhánh `main` của
+  `KimNam2809/ADAS_FOR_FRONTIER_CAMERA`, commit `aa69a72` (`feat: publish
+  unified RoadWatch Copilot`), không force-push và giữ nguyên `roadwatch_project`.
+- Asset policy: không commit `.env`, token, model weights, video, voice, raw
+  dataset, cache, database hoặc build output; người dùng tải qua Drive/manual
+  theo README. Fallback vẫn là bundle UI cũ, Piper, YOLO11n/YOLOP và policy
+  runtime hiện tại.
