@@ -4302,3 +4302,15 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
 - Fallback: commit remote trước repack và nhánh `roadwatch_project` vẫn giữ
   nguyên; nếu cần hoàn tác chỉ phục hồi commit trước theo quy trình Git được
   phê duyệt.
+
+## POST-WORK — RW-REPO-ROOT-REPACK-20260901
+
+- Trạng thái: **PASS / PUSHED**.
+- Root của nhánh `main` hiện chứa trực tiếp toàn bộ RoadWatch Copilot; không
+  còn top-level `roadwatch_copilot/`.
+- Verification: backend `101 passed, 6 skipped`; landing integration `7/7`;
+  TypeScript/Vite build PASS; prohibited asset audit PASS.
+- Commit cấu trúc trước post-work: `3190b9c`; fallback là `9c0feed`;
+  nhánh `roadwatch_project` không bị thay đổi.
+- Không có `.env`, token, model weights, video, voice, raw data, database,
+  cache hoặc build output trong commit.
