@@ -1,0 +1,22 @@
+{
+  "id": "lekimnam/roadwatch-object-detector-v3-full-fine-tune",
+  "title": "RoadWatch Object Detector V3 Full Fine-tune",
+  "code_file": "roadwatch_train_object_v3_full.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "a7madmostafa/bdd100k-yolo",
+    "orvile/dawn-detection-in-adverse-weather-nature",
+    "lekimnam/roadwatch-target-domain-videos-v1"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [
+    "lekimnam/roadwatch-dataset-quality-gate",
+    "lekimnam/roadwatch-object-detector-phase-2-1"
+  ],
+  "model_sources": []
+}

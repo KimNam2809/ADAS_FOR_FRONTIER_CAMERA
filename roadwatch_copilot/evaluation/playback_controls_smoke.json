@@ -1,0 +1,22 @@
+{
+  "status": "pass",
+  "checks": {
+    "started_and_has_duration": true,
+    "pause_preserves_position": true,
+    "seek_applied_while_paused": true,
+    "resume_advances": true,
+    "new_session_clears_old_frame_immediately": true,
+    "new_session_updates_source_immediately": true,
+    "new_session_has_unique_identity": true,
+    "second_video_produces_frame": true,
+    "second_video_frame_is_not_first_video_frame": true
+  },
+  "source": "test_video1.mp4",
+  "duration_seconds": 41.84,
+  "paused_at_seconds": 0.067,
+  "seek_target_seconds": 5.067,
+  "resumed_at_seconds": 5.333,
+  "second_video_current_seconds": 0.24,
+  "first_session_id": "04b3b701-068e-4649-ad70-703c0ce0d946",
+  "second_session_id": "c35cce97-8016-467f-aae7-8381d53f098b"
+}

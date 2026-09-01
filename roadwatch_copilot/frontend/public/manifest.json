@@ -1,0 +1,11 @@
+{
+  "name": "RoadWatch Copilot",
+  "short_name": "RoadWatch",
+  "description": "Trợ lý cảnh báo hỗ trợ lái đa phương thức chạy offline trên edge",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f8ff",
+  "theme_color": "#0868ff",
+  "icons": [{ "src": "/logo.png", "sizes": "any", "type": "image/png" }]
+}
+

@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest>=8,<10
+httpx>=0.27,<1
+onnx>=1.12,<2
+onnxslim>=0.1.82

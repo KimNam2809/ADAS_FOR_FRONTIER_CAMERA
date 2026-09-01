@@ -1,0 +1,32 @@
+{
+  "name": "roadwatch-hmi",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "test": "node --test tests/*.test.mjs",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "dev:landing": "vite --host 127.0.0.1 --open /",
+    "build:landing": "tsc -b && vite build",
+    "preview:landing": "vite preview --host 127.0.0.1",
+    "verify": "npm test && npm run build"
+  },
+  "dependencies": {
+    "@fontsource/be-vietnam-pro": "^5.3.0",
+    "@gsap/react": "^2.1.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "latest",
+    "gsap": "^3.15.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "^4.3.3",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest"
+  }
+}

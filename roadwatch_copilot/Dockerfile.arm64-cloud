@@ -1,0 +1,31 @@
+ARG BASE_IMAGE=nvcr.io/nvidia/pytorch:24.11-py3
+
+FROM --platform=linux/arm64 node:22-bookworm-slim AS frontend-build
+WORKDIR /build
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM --platform=linux/arm64 ${BASE_IMAGE}
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/backend \
+    ROADWATCH_DEVICE=0 \
+    ROADWATCH_RUNTIME=cuda \
+    ROADWATCH_DISABLE_AUDIO=1
+WORKDIR /app
+COPY requirements.txt /tmp/requirements.txt
+# Keep CUDA/PyTorch supplied by the ARM64 NGC base image. Generic PyPI
+# onnxruntime wheels are not assumed to exist for this target.
+RUN grep -vE 'torch|torchvision|onnxruntime|piper-tts' /tmp/requirements.txt > /tmp/arm64.txt \
+    && python3 -m pip install --no-cache-dir -r /tmp/arm64.txt \
+    && python3 -m pip install --no-cache-dir pathvalidate ultralytics piper-tts --no-deps
+COPY backend ./backend
+COPY configs ./configs
+COPY scripts/arm64_preflight.py ./scripts/arm64_preflight.py
+COPY --from=frontend-build /build/dist ./frontend/dist
+RUN mkdir -p /app/models /app/media /app/data /app/voices /app/reports
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
+CMD ["python3", "-m", "uvicorn", "roadwatch.api:app", "--host", "0.0.0.0", "--port", "8000"]

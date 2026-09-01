@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-10",
+  "review_kind": "ai_assisted_raw_video_comparison",
+  "reviewer": "Codex_AI_Assisted_Reviewer",
+  "reviewed_at": "2026-08-27",
+  "eligible_as_human_review": false,
+  "eligible_as_independent_double_review": false,
+  "blinded_to_primary_labels": false,
+  "purpose": "Reference pass for a Human Reviewer to compare manually; it must not be counted in any Human quality-gate metric.",
+  "source_resolution": {
+    "queue_source_alias": "dashcam_vietnam_rainnight.mp4",
+    "local_raw_video": "media/dashcam_vietnam_rain+night.mp4",
+    "frame_resolution": [1920, 1080],
+    "review_method": "Raw frames at every queued timestamp plus adjacent queued frames from the same continuous source; proposal-overlay images were not used for visual decisions."
+  },
+  "annotation_defaults": {
+    "ground_truth_lane_count": 0,
+    "ego_left_boundary": [],
+    "ego_right_boundary": [],
+    "marking_type": ["unknown"],
+    "road_direction": "same_direction",
+    "uncertain": true,
+    "review_status": "needs_recheck"
+  },
+  "records": [
+    {"id":"dashcam_vietnam_rainnight-0000","timestamp_s":0.0,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree","note":"Rainy intersection; no lane marking or defensible ego boundary."},
+    {"id":"dashcam_vietnam_rainnight-0001","timestamp_s":0.933,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"occluded","left_points":0,"right_points":0},"decision":"agree_lane_count","note":"Wet-road glare dominates; no lane marking can be traced."},
+    {"id":"dashcam_vietnam_rainnight-0002","timestamp_s":1.867,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree","note":"Intersection traffic and reflections; no discernible lane boundary."},
+    {"id":"dashcam_vietnam_rainnight-0003","timestamp_s":2.8,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"occluded","left_points":0,"right_points":0},"decision":"agree_lane_count","note":"No marking is visible in the raw frame; do not infer from reflections."},
+    {"id":"dashcam_vietnam_rainnight-0004","timestamp_s":3.75,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree","note":"No observable lane paint or ego boundary."},
+    {"id":"dashcam_vietnam_rainnight-0005","timestamp_s":4.683,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree","note":"Headlight and shop-light reflections are not lane evidence."},
+    {"id":"dashcam_vietnam_rainnight-0006","timestamp_s":5.617,"visibility":"occluded","primary":{"lane_count":0,"visibility":"occluded","left_points":0,"right_points":0},"decision":"agree","note":"Vehicles occupy possible boundary areas; no defensible visible segment."},
+    {"id":"dashcam_vietnam_rainnight-0007","timestamp_s":6.567,"visibility":"occluded","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree_lane_count","note":"Dense traffic and wet glare obscure any usable marking."},
+    {"id":"dashcam_vietnam_rainnight-0008","timestamp_s":7.5,"visibility":"occluded","primary":{"lane_count":0,"visibility":"occluded","left_points":0,"right_points":0},"decision":"agree","note":"No boundary can be localized without extrapolation across traffic."},
+    {"id":"dashcam_vietnam_rainnight-0009","timestamp_s":8.433,"visibility":"occluded","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree_lane_count","note":"No lane paint is defensible amid glare and vehicle occlusion."},
+    {"id":"dashcam_vietnam_rainnight-0010","timestamp_s":9.367,"visibility":"occluded","primary":{"lane_count":2,"visibility":"partial","left_points":14,"right_points":13},"decision":"disagree","note":"Raw sequence does not support two same-direction lanes or either proposed solid ego boundary; reflections and vehicles must not be traced."},
+    {"id":"dashcam_vietnam_rainnight-0011","timestamp_s":10.317,"visibility":"occluded","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree_lane_count","note":"Taxi and opposing headlights obstruct the road surface; no boundary is defensible."},
+    {"id":"dashcam_vietnam_rainnight-0055","timestamp_s":51.6,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"occluded","left_points":0,"right_points":0},"decision":"agree_lane_count","note":"No observable lane paint; retain no geometry."},
+    {"id":"dashcam_vietnam_rainnight-0056","timestamp_s":52.533,"visibility":"partial","primary":{"lane_count":3,"visibility":"partial","left_points":7,"right_points":8},"decision":"disagree","note":"At most isolated reflective fragments are present. Three lanes and the proposed boundaries are not defensible from the adjacent raw frames."},
+    {"id":"dashcam_vietnam_rainnight-0057","timestamp_s":53.467,"visibility":"partial","primary":{"lane_count":2,"visibility":"partial","left_points":5,"right_points":5},"decision":"disagree","note":"A short isolated paint-like fragment is insufficient to determine lane count or draw an ego boundary."},
+    {"id":"dashcam_vietnam_rainnight-0058","timestamp_s":54.417,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree","note":"Crosswalk paint is visible, but it is not a lane boundary; no lane count can be established."},
+    {"id":"dashcam_vietnam_rainnight-0059","timestamp_s":55.35,"visibility":"partial","primary":{"lane_count":1,"visibility":"partial","left_points":6,"right_points":6},"decision":"disagree","note":"Possible reflective/paint fragments are interrupted by a motorcycle and glare. A one-lane count and both boundaries are not defensible."},
+    {"id":"dashcam_vietnam_rainnight-0060","timestamp_s":56.283,"visibility":"partial","primary":{"lane_count":3,"visibility":"occluded","left_points":6,"right_points":6},"decision":"disagree","note":"Raw frame and its adjacent frames do not support a three-lane interpretation; do not extrapolate proposal polylines through glare."},
+    {"id":"dashcam_vietnam_rainnight-0061","timestamp_s":57.217,"visibility":"occluded","primary":{"lane_count":0,"visibility":"occluded","left_points":0,"right_points":0},"decision":"agree","note":"Oncoming headlights and vehicles obscure any lane evidence."},
+    {"id":"dashcam_vietnam_rainnight-0062","timestamp_s":58.167,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree","note":"No usable lane marking or ego boundary is observable."},
+    {"id":"dashcam_vietnam_rainnight-0063","timestamp_s":59.1,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"occluded","left_points":0,"right_points":0},"decision":"agree_lane_count","note":"Wet surface and lights prevent reliable lane localization."},
+    {"id":"dashcam_vietnam_rainnight-0064","timestamp_s":60.033,"visibility":"not_visible","primary":{"lane_count":0,"visibility":"not_visible","left_points":0,"right_points":0},"decision":"agree","note":"No defensible lane marking is present in the visible road area."}
+  ],
+  "summary": {
+    "records_reviewed": 22,
+    "recommended_zero_lane_no_geometry": 22,
+    "lane_count_agreements": 17,
+    "lane_count_disagreements": 5,
+    "disagreement_ids": [
+      "dashcam_vietnam_rainnight-0010",
+      "dashcam_vietnam_rainnight-0056",
+      "dashcam_vietnam_rainnight-0057",
+      "dashcam_vietnam_rainnight-0059",
+      "dashcam_vietnam_rainnight-0060"
+    ],
+    "recommended_action": "A Human Reviewer should adjudicate all 22 records from raw video; prioritize the five lane-count disagreements. Keep every record needs_recheck until a named Human reviewer confirms it."
+  }
+}

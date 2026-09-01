@@ -1,0 +1,39 @@
+steps:
+  - id: build-tts-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - Dockerfile.tts
+      - -t
+      - asia-southeast1-docker.pkg.dev/$PROJECT_ID/roadwatch/roadwatch-tts:$BUILD_ID
+      - .
+  - id: push-tts-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - asia-southeast1-docker.pkg.dev/$PROJECT_ID/roadwatch/roadwatch-tts:$BUILD_ID
+  - id: deploy-tts
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - roadwatch-tts
+      - --project=$PROJECT_ID
+      - --region=asia-southeast1
+      - --platform=managed
+      - --image=asia-southeast1-docker.pkg.dev/$PROJECT_ID/roadwatch/roadwatch-tts:$BUILD_ID
+      - --no-allow-unauthenticated
+      - --port=8080
+      - --cpu=2
+      - --memory=2Gi
+      - --timeout=120
+      - --concurrency=4
+      - --cpu-boost
+      - --no-cpu-throttling
+      - --min=0
+      - --max=1
+      - --set-env-vars=ROADWATCH_GCS_ASSET_BUCKET=c3-roadwatch-162-roadwatch-assets,ROADWATCH_ASSET_GROUPS=voices,ROADWATCH_TTS_VOICE=voices/vi_VN-vais1000-medium.onnx,ROADWATCH_TTS_PRECACHE=0
+images:
+  - asia-southeast1-docker.pkg.dev/$PROJECT_ID/roadwatch/roadwatch-tts:$BUILD_ID

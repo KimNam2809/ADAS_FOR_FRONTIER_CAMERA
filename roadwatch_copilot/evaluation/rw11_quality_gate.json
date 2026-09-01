@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-11",
+  "generated_at": "2026-08-22T08:28:23.414862+00:00",
+  "status": "pass",
+  "permutations_evaluated": 120,
+  "unique_output_signatures": 1,
+  "gates": {
+    "at_least_30_permutations": true,
+    "deterministic_output": true,
+    "at_most_one_spoken_sign": true,
+    "critical_road_user_preempts_sign": true,
+    "same_speed_cooldown_20_seconds": true
+  }
+}

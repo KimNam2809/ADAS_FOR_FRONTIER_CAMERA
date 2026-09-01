@@ -1,0 +1,57 @@
+{
+  "provider": "piper/vi_VN-vais1000-medium",
+  "voice": "vi_VN-vais1000-medium.onnx",
+  "sample_rate": 22050,
+  "encoded": "mp3 mono 48 kbps",
+  "lines": [
+    {
+      "slug": "fcw",
+      "text": "Cảnh báo va chạm",
+      "seconds": 0.78,
+      "bytes": 5241,
+      "synthesis_ms": 844.6
+    },
+    {
+      "slug": "vru",
+      "text": "Người đi bộ phía trước; giảm tốc độ.",
+      "seconds": 1.56,
+      "bytes": 9943,
+      "synthesis_ms": 43.7
+    },
+    {
+      "slug": "cutin",
+      "text": "Ô tô nhập làn từ bên phải. Hãy chú ý.",
+      "seconds": 1.87,
+      "bytes": 11824,
+      "synthesis_ms": 55.3
+    },
+    {
+      "slug": "cross",
+      "text": "Xe máy cắt ngang từ bên trái.",
+      "seconds": 1.46,
+      "bytes": 9316,
+      "synthesis_ms": 53.7
+    },
+    {
+      "slug": "brake",
+      "text": "Ô tô phía trước đang giảm tốc. Hãy chú ý.",
+      "seconds": 1.96,
+      "bytes": 12451,
+      "synthesis_ms": 63.2
+    },
+    {
+      "slug": "ldw",
+      "text": "Cảnh báo lệch làn bên trái.",
+      "seconds": 1.4,
+      "bytes": 9003,
+      "synthesis_ms": 43.1
+    },
+    {
+      "slug": "speed",
+      "text": "Giới hạn 80 ki-lô-mét/giờ phía trước.",
+      "seconds": 2.05,
+      "bytes": 12921,
+      "synthesis_ms": 62.6
+    }
+  ]
+}

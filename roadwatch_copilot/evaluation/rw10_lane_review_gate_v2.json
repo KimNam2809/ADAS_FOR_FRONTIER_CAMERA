@@ -1,0 +1,70 @@
+{
+  "schema_version": 2,
+  "task_id": "RW-10",
+  "generated_at": "2026-08-27T13:08:57.336109+00:00",
+  "status": "in_progress_pending_verification",
+  "training_blocked": true,
+  "summary": {
+    "total_records_in_queue": 599,
+    "verified": 0,
+    "pending": 577,
+    "needs_recheck": 22
+  },
+  "criteria": [
+    {
+      "criterion": "Verified frames >= 3,000",
+      "current": 0,
+      "target": 3000,
+      "passed": false
+    },
+    {
+      "criterion": "Night verified >= 500",
+      "current": 0,
+      "target": 500,
+      "passed": false
+    },
+    {
+      "criterion": "Rain/Rain-night verified >= 400",
+      "current": 0,
+      "target": 400,
+      "passed": false
+    },
+    {
+      "criterion": "Multi-lane verified >= 1,000",
+      "current": 0,
+      "target": 1000,
+      "passed": false
+    },
+    {
+      "criterion": "Faded/missing marking >= 400",
+      "current": 0,
+      "target": 400,
+      "passed": false
+    },
+    {
+      "criterion": "Double-reviewed frames >= 300",
+      "current": 0,
+      "target": 300,
+      "passed": false
+    },
+    {
+      "criterion": "Review disagreement <= 5%",
+      "current": "100.00%",
+      "target": "<= 5.0%",
+      "passed": false
+    },
+    {
+      "criterion": "Invalid coordinates == 0",
+      "current": 0,
+      "target": 0,
+      "passed": true
+    },
+    {
+      "criterion": "Split leakage == 0",
+      "current": "No overlap",
+      "target": "No overlap",
+      "passed": true
+    }
+  ],
+  "human_action": "Continue review pipeline to fulfill remaining criteria."
+}

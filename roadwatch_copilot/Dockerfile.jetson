@@ -1,0 +1,28 @@
+ARG L4T_PYTORCH_IMAGE=nvcr.io/nvidia/l4t-pytorch:r36.4.0-pth2.5-py3
+FROM node:22-alpine AS frontend-build
+WORKDIR /build
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM ${L4T_PYTORCH_IMAGE}
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/backend \
+    ROADWATCH_DEVICE=0 \
+    ROADWATCH_RUNTIME=cuda \
+    ROADWATCH_DISABLE_AUDIO=1
+WORKDIR /app
+COPY requirements.txt /tmp/requirements.txt
+# JetPack images already provide the NVIDIA-compatible torch build. Never
+# replace it with a generic PyPI wheel on Jetson.
+RUN grep -vE 'onnxruntime|ultralytics|piper-tts' /tmp/requirements.txt > /tmp/base.txt \
+    && python3 -m pip install --no-cache-dir -r /tmp/base.txt \
+    && python3 -m pip install --no-cache-dir pathvalidate ultralytics piper-tts --no-deps
+COPY backend ./backend
+COPY configs ./configs
+COPY --from=frontend-build /build/dist ./frontend/dist
+RUN mkdir -p /app/models /app/media /app/data /app/voices
+EXPOSE 8000
+CMD ["python3", "-m", "uvicorn", "roadwatch.api:app", "--host", "0.0.0.0", "--port", "8000"]

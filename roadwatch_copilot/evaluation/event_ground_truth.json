@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "annotation_method": "Timestamped contact-sheet review plus user test narrative. Provisional entries are excluded from automatic promotion metrics.",
+  "videos": [
+    {
+      "source": "test_video1.mp4",
+      "coverage": [
+        {"start_seconds": 8.0, "end_seconds": 24.0, "exhaustive": true, "review_status": "verified"},
+        {"start_seconds": 26.0, "end_seconds": 38.0, "exhaustive": true, "review_status": "verified"}
+      ],
+      "events": [
+        {"id": "tv1-cutin-1", "event_type": "cut_in", "acceptable_event_types": ["cut_in", "fcw"], "object_class": "car", "location": "right", "start_seconds": 11.0, "hazard_onset_seconds": 12.0, "deadline_seconds": 14.5, "end_seconds": 17.0, "review_status": "verified", "notes": "White car enters ego path from right."},
+        {"id": "tv1-braking-1", "event_type": "lead_vehicle_braking", "acceptable_event_types": ["lead_vehicle_braking", "fcw"], "object_class": "car", "location": "front", "start_seconds": 15.0, "hazard_onset_seconds": 16.0, "deadline_seconds": 18.0, "end_seconds": 21.0, "review_status": "verified", "notes": "Near-field closing/braking sequence."},
+        {"id": "tv1-fcw-critical-1", "event_type": "fcw", "acceptable_event_types": ["fcw"], "object_class": "car", "location": "right", "start_seconds": 16.5, "hazard_onset_seconds": 17.0, "deadline_seconds": 18.0, "end_seconds": 19.5, "review_status": "verified", "notes": "Owner-reported and frame-reviewed near-contact FCW event."},
+        {"id": "tv1-cutin-2", "event_type": "cut_in", "acceptable_event_types": ["cut_in", "fcw"], "object_class": "car", "location": "right", "start_seconds": 27.0, "hazard_onset_seconds": 28.0, "deadline_seconds": 30.5, "end_seconds": 33.0, "review_status": "verified", "notes": "Second repeated cut-in sequence."},
+        {"id": "tv1-braking-2", "event_type": "lead_vehicle_braking", "acceptable_event_types": ["lead_vehicle_braking", "fcw"], "object_class": "car", "location": "front", "start_seconds": 31.0, "hazard_onset_seconds": 32.0, "deadline_seconds": 34.0, "end_seconds": 36.5, "review_status": "verified", "notes": "Second near-field braking sequence."},
+        {"id": "tv1-fcw-critical-2", "event_type": "fcw", "acceptable_event_types": ["fcw"], "object_class": "car", "location": "right", "start_seconds": 31.5, "hazard_onset_seconds": 31.8, "deadline_seconds": 32.5, "end_seconds": 34.5, "review_status": "verified", "notes": "Repeated near-contact FCW event confirmed by real-world finding and frame review."}
+      ]
+    },
+    {
+      "source": "video_test.mp4",
+      "coverage": [
+        {"start_seconds": 10.0, "end_seconds": 22.0, "exhaustive": true, "review_status": "verified"},
+        {"start_seconds": 40.0, "end_seconds": 60.0, "exhaustive": false, "review_status": "provisional"}
+      ],
+      "events": [
+        {"id": "vt-night-cross", "event_type": "cross_traffic", "acceptable_event_types": ["cross_traffic", "vulnerable_road_user", "fcw"], "object_class": "motorcycle", "location": "left_to_right", "start_seconds": 12.0, "hazard_onset_seconds": 12.5, "deadline_seconds": 14.5, "end_seconds": 16.5, "review_status": "verified", "notes": "Motorcycle crosses ego path at night."},
+        {"id": "vt-night-fallen", "event_type": "fallen_rider", "acceptable_event_types": ["fallen_rider", "vulnerable_road_user", "fcw"], "object_class": "motorcycle", "location": "front", "start_seconds": 15.0, "hazard_onset_seconds": 15.5, "deadline_seconds": 17.0, "end_seconds": 19.5, "review_status": "verified", "notes": "Rider/motorcycle falls and remains a road hazard."},
+        {"id": "vt-day-vru-1", "event_type": "vulnerable_road_user", "acceptable_event_types": ["cross_traffic", "vulnerable_road_user", "fcw"], "object_class": "person", "location": "right_to_left", "start_seconds": 42.0, "hazard_onset_seconds": 43.0, "deadline_seconds": 46.0, "end_seconds": 49.0, "review_status": "provisional", "notes": "Daytime crossing; requires second reviewer."},
+        {"id": "vt-day-vru-2", "event_type": "cross_traffic", "acceptable_event_types": ["cross_traffic", "vulnerable_road_user", "fcw"], "object_class": "motorcycle", "location": "right_to_left", "start_seconds": 49.0, "hazard_onset_seconds": 50.0, "deadline_seconds": 52.5, "end_seconds": 55.0, "review_status": "provisional", "notes": "Daytime two-wheeler crossing; requires second reviewer."}
+      ],
+      "negative_windows": [
+        {"start_seconds": 34.0, "end_seconds": 67.0, "forbidden_event_types": ["speed_sign"], "review_status": "verified"}
+      ]
+    },
+    {
+      "source": "test_video10.mp4",
+      "coverage": [
+        {"start_seconds": 3.0, "end_seconds": 5.0, "exhaustive": true, "review_status": "verified"}
+      ],
+      "events": [
+        {"id": "tv10-speed-60", "event_type": "speed_sign", "acceptable_event_types": ["speed_sign"], "object_class": "traffic_sign", "location": "right", "speed_value": 60, "start_seconds": 3.2, "hazard_onset_seconds": 3.3, "deadline_seconds": 5.0, "end_seconds": 5.0, "review_status": "verified", "notes": "Physical sign reads 60; current model returns 40."}
+      ]
+    },
+    {
+      "source": "test_video11.mp4",
+      "coverage": [
+        {"start_seconds": 32.0, "end_seconds": 35.0, "exhaustive": true, "review_status": "verified"}
+      ],
+      "events": [
+        {"id": "tv11-speed-80", "event_type": "speed_sign", "acceptable_event_types": ["speed_sign"], "object_class": "traffic_sign", "location": "right", "speed_value": 80, "start_seconds": 32.0, "hazard_onset_seconds": 32.2, "deadline_seconds": 34.2, "end_seconds": 35.0, "review_status": "verified", "notes": "Physical sign reads 80."}
+      ]
+    }
+  ]
+}

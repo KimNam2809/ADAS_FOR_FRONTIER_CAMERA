@@ -1,0 +1,170 @@
+@import "@fontsource/be-vietnam-pro/300.css";
+@import "@fontsource/be-vietnam-pro/400.css";
+@import "@fontsource/be-vietnam-pro/500.css";
+@import "@fontsource/be-vietnam-pro/700.css";
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   DESIGN TOKENS — ADAS Landing
+   Mọi màu khai báo ở đây. Component không hardcode hex. (CLAUDE.md)
+
+   Bảng màu: trắng + xám cho nền và mặt đường, xanh dương cho vùng phía
+   trước xe (quỹ đạo dự kiến), đỏ cho tình huống nguy hiểm.
+   ========================================================================== */
+
+@theme inline {
+    /* Be Vietnam Pro được bundle local: đủ dấu Việt ở mọi weight, không CDN. */
+    --font-sans: "Be Vietnam Pro", "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--font-sans);
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+    /* --- Thang chữ: nhảy >= 2.5x giữa các bậc (CLAUDE.md) ------------------ */
+    --text-micro: 0.6875rem;   /* 11px  — nhãn HUD, mono */
+    --text-body: 1rem;         /* 16px  — thân */
+    --text-lead: 1.375rem;     /* 22px  — dòng dẫn */
+    --text-display: 4.5rem;    /* 72px  — 4.5x so với body */
+    --text-mega: 8rem;         /* 128px — hero, desktop */
+
+    /* --- Ánh xạ sang shadcn ------------------------------------------------ */
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    /* --- Token riêng của trang --------------------------------------------- */
+    --color-signal: var(--signal);
+    --color-state-alert: var(--state-alert);
+    --color-on-dark: var(--on-dark);
+    --color-on-dark-mid: var(--on-dark-mid);
+    --color-object-marker: var(--object-marker);
+    --color-surface-2: var(--surface-2);
+    --color-road: var(--road);
+    --color-surface-3: var(--surface-3);
+    --color-surface-4: var(--surface-4);
+    --color-text-mid: var(--text-mid);
+    --color-text-low: var(--text-low);
+
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+:root {
+    /* Thang bề mặt, sáng → tối. surface-0 là nền trang. */
+    --surface-0: oklch(0.986 0.002 255); /* nền trang, gần trắng */
+    --surface-1: oklch(0.958 0.003 255); /* quầng chân trời */
+    --surface-2: oklch(0.910 0.004 255); /* nền phụ, viền nhạt */
+    --road: oklch(0.876 0.005 255);      /* mặt đường — đủ tối để vạch trắng nổi */
+    --surface-3: oklch(0.800 0.006 255); /* mép đường, viền, bóng đổ */
+    --surface-4: oklch(0.645 0.010 255); /* thân xe xung quanh */
+    --surface-5: oklch(0.415 0.014 255); /* kính xe, xe chủ */
+
+    --text-hi: oklch(0.215 0.015 258);
+    --text-mid: oklch(0.455 0.012 258);
+    --text-low: oklch(0.620 0.010 258);
+
+    /* Xanh dương — vùng phía trước xe: quỹ đạo dự kiến và vật thể đã bám
+       nhưng chưa thành mối nguy. */
+    --signal: oklch(0.585 0.195 258);
+
+    /* Đỏ — tình huống nguy hiểm: nguy cơ va chạm, người đi bộ, vật cản. */
+    --state-alert: oklch(0.575 0.225 27);
+
+    /* Xe: thân trắng, kính đen. Thân trắng trên mặt đường xám cần một đường
+       viền mảnh, nếu không silhouette sẽ tan vào đường. */
+    --car-body: oklch(0.972 0.002 255);
+    --car-roof: oklch(0.930 0.003 255);
+    --car-edge: oklch(0.780 0.007 255);
+    --car-glass: oklch(0.225 0.012 255);
+
+    /* Giả khối: một hướng đèn từ trên-trái. Mặt hướng đèn dùng --car-spec,
+       mặt khuất dùng --car-shade, bóng đổ lệch về dưới-phải. */
+    --car-shade: oklch(0.858 0.005 255);
+    --car-spec: oklch(1 0 0);
+    --shadow-cast: oklch(0.620 0.014 255);
+
+    /* Nền cho dải ảnh tràn viền. Lấy đúng màu trội ở mép ảnh để ảnh hoà vào
+       dải thay vì nằm như một hình chữ nhật dán lên trang. */
+    --band-black: oklch(0 0 0);          /* Jetson trên nền đen tuyệt đối */
+    --band-night: oklch(0.335 0.042 250); /* cabin xe, ~#2b3f58 */
+    --on-dark: oklch(0.975 0.004 250);
+    --on-dark-mid: oklch(0.780 0.012 250);
+
+    /* Cam chỉ mô tả cọc tiêu ngoài đường. Trạng thái nguy hiểm vẫn
+       dùng duy nhất màu đỏ để không làm người xem hiểu nhầm. */
+    --object-marker: oklch(0.72 0.17 58);
+
+    /* shadcn */
+    --background: var(--surface-0);
+    --foreground: var(--text-hi);
+    --card: oklch(1 0 0);
+    --card-foreground: var(--text-hi);
+    --popover: oklch(1 0 0);
+    --popover-foreground: var(--text-hi);
+    --primary: var(--signal);
+    --primary-foreground: oklch(0.99 0.002 255);
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--text-hi);
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-mid);
+    --accent: var(--surface-2);
+    --accent-foreground: var(--text-hi);
+    --destructive: var(--state-alert);
+    --border: oklch(0.215 0.015 258 / 12%);
+    --input: oklch(0.215 0.015 258 / 18%);
+    --ring: var(--signal);
+    --radius: 0.5rem;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    html {
+        font-family: var(--font-sans);
+        background: var(--surface-0);
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+    }
+    body {
+        @apply bg-background text-foreground;
+        margin: 0;
+        min-height: 100vh;
+        overflow-x: clip;
+    }
+    a, button, summary {
+        outline: none;
+    }
+    a:focus-visible, button:focus-visible, summary:focus-visible {
+        outline: 2px solid var(--signal);
+        outline-offset: 4px;
+    }
+    ::selection {
+        background: var(--signal);
+        color: var(--surface-0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}

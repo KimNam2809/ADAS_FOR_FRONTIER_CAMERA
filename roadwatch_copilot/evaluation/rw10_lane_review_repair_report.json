@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-10",
+  "generated_at": "2026-08-27T12:48:06.019216+00:00",
+  "queue": "D:\\AI_VinUni_Project_T162\\SetUpModule\\Object-Ditection-Manual\\yolo-universal-counter\\yolo-universal-counter\\roadwatch\\evaluation\\rw10_lane_review_queue_v2.json",
+  "original_sha256": "e89c14120b5a247a1635c3f1e789239460d6b2c5d6c2a3a229b5f5f054bf91fc",
+  "actions": {
+    "coordinate_scale_repairs": 0,
+    "needs_recheck": 0,
+    "unchanged": 599
+  },
+  "post_validation": {
+    "status": "pass",
+    "records": 599,
+    "verified": 22,
+    "pending": 577,
+    "needs_recheck": 0,
+    "split_source_overlap": false,
+    "issues": []
+  },
+  "backup": "D:\\AI_VinUni_Project_T162\\SetUpModule\\Object-Ditection-Manual\\yolo-universal-counter\\yolo-universal-counter\\roadwatch\\evaluation\\backups\\rw10_lane_review_queue_v2.pre_repair_20260827T194806.json",
+  "repair_policy": {
+    "frame_size": [
+      1920,
+      1080
+    ],
+    "scale_candidates": [
+      [
+        1.0,
+        1.0
+      ],
+      [
+        1.0,
+        0.3333333333333333
+      ],
+      [
+        0.3333333333333333,
+        1.0
+      ],
+      [
+        0.3333333333333333,
+        0.3333333333333333
+      ]
+    ],
+    "ambiguous_coordinates_are_not_clipped": true,
+    "semantic_conflicts_are_not_guessed": true
+  },
+  "status": "dry_run_pass"
+}

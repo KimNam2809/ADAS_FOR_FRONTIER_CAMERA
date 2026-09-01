@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "task_id": "RW-07",
+  "generated_at": "2026-08-21T16:33:27.907492+00:00",
+  "status": "blocked",
+  "calibration_path": "D:\\AI_VinUni_Project_T162\\SetUpModule\\Object-Ditection-Manual\\yolo-universal-counter\\yolo-universal-counter\\roadwatch\\configs\\camera_calibration.json",
+  "camera_id": null,
+  "metric_ttc_alerting_allowed": false,
+  "errors": [
+    "calibration artifact does not exist"
+  ],
+  "next_gate": "measured day/night closed-course distance and TTC evaluation"
+}

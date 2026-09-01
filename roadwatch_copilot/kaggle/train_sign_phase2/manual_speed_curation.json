@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "source_run": "RoadWatch Traffic Sign Phase 2 Versions 10 and 12",
+  "review_method": "Human visual review of bootstrap_rejected_ranked contact sheets",
+  "reviewer": "RoadWatch project team",
+  "review_history": [
+    "Version 10: initial recovery of clear 80/90 crops and unsupported 10 review",
+    "Version 12: added seven train and one validation crop for class 90 from the remaining ranked rejection sheet",
+    "Post-Version 14: added five additional clear class-90 train crops from the Version 12 ranked sheet to avoid a boundary-fragile 50-sample gate"
+  ],
+  "accepted_numeric": {
+    "val:80": [
+      "c41_3932_000071"
+    ],
+    "train:90": [
+      "c63_4041_000030",
+      "c63_4059_000061",
+      "c63_4121_000038",
+      "c63_4055_000058",
+      "c63_4013_000065",
+      "c63_4056_000044",
+      "c63_4043_000039",
+      "c63_4058_000077",
+      "c63_4142_000019",
+      "c63_4052_000047",
+      "c63_4113_000056",
+      "c63_4115_000017",
+      "c63_4103_000063",
+      "c63_4139_000025",
+      "c63_4050_000051",
+      "c63_4054_000042",
+      "c63_4025_000052",
+      "c63_4144_000037",
+      "c63_4049_000034",
+      "c63_4048_000057",
+      "c63_4015_000078",
+      "c63_4036_000018",
+      "c63_4072_000001",
+      "c63_4070_000035",
+      "c63_4074_000009",
+      "c63_4116_000053",
+      "c63_4068_000015",
+      "c63_4029_000014",
+      "c63_4046_000076",
+      "c63_4063_000031",
+      "c63_4078_000074",
+      "c63_4006_000054",
+      "c63_4111_000024",
+      "c63_4014_000064",
+      "c63_4040_000070",
+      "c63_4047_000067",
+      "c63_4044_000041",
+      "c63_4010_000036",
+      "c63_4034_000071",
+      "c63_4077_000006",
+      "c63_4060_000045"
+    ],
+    "val:90": [
+      "c63_4118_000006",
+      "c63_4012_000004",
+      "c63_4081_000000",
+      "c63_4027_000002",
+      "c63_4080_000014",
+      "c63_4030_000012",
+      "c63_4035_000001",
+      "c63_4147_000008",
+      "c63_4472_000010",
+      "c63_4019_000016"
+    ]
+  },
+  "accepted_unknown": {
+    "train": [
+      "c57_4415_000042",
+      "c57_4413_000013",
+      "c57_4413_000012",
+      "c57_4411_000068",
+      "c57_4418_000059",
+      "c57_4417_000090",
+      "c57_4429_000019",
+      "c57_4409_000070",
+      "c57_4432_000057",
+      "c57_4412_000099",
+      "c57_4419_000050",
+      "c57_4432_000056",
+      "c57_4430_000020",
+      "c57_4431_000038"
+    ],
+    "val": [
+      "c57_4408_000016",
+      "c57_4416_000015",
+      "c57_4120_000000",
+      "c57_4176_000001"
+    ]
+  },
+  "policy": {
+    "unsupported_numeric_values": [10],
+    "runtime_behavior": "Classifier label unknown produces no numeric speed value and therefore no numeric TTS claim",
+    "promotion_condition": "10 km/h may only become a supported numeric class after an independently reviewed real-domain validation set meets the same minimum gates"
+  }
+}

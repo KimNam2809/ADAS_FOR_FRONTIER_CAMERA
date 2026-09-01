@@ -1,0 +1,17 @@
+{
+  "id": "lekimnam/roadwatch-fallen-rider-quality-gate",
+  "title": "RoadWatch Fallen Rider Quality Gate",
+  "code_file": "roadwatch_fallen_rider.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "simuletic/cctv-incident-dataset-fall-and-lying-down-detection"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

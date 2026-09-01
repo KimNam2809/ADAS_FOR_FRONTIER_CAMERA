@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "distribution": {
+    "models_drive_folder": "https://drive.google.com/drive/folders/1m_u6KELkCru8DLh46iuTFmXKioMfS_KT?usp=sharing",
+    "media_drive_folder": "https://drive.google.com/drive/folders/1dFb_SLqwN98hXSTLxEqPu_RgZ1PyjVPM?usp=sharing"
+  },
+  "runtime_required_models": [
+    "yolo11n.onnx",
+    "roadwatch_detector_v2.onnx",
+    "roadwatch_speed_digits_v2.onnx",
+    "yolop_lane_detection_640.onnx"
+  ],
+  "runtime_required_voice": [
+    "voices/vi_VN-vais1000-medium.onnx",
+    "voices/vi_VN-vais1000-medium.onnx.json"
+  ],
+  "notes": [
+    "Drive assets are public distribution inputs and are not committed to Git.",
+    "A user may skip Drive bootstrap and place equivalent assets in models, media and voices manually.",
+    "The setup script does not download assets when the required model files or local media are already present."
+  ]
+}

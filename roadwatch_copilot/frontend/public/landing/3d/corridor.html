@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi" class="embed">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoadWatch — Asset 01 Hành lang ego · Asset 02 Nêm bất định</title>
+<link rel="stylesheet" href="_ds/nocturne-645cc0b2-ab3b-4760-8331-46bdf9c14ecf/styles.css">
+<style>
+  three-d-stage:not(:defined) { visibility: hidden; }
+  html, body { margin: 0; height: 100%; background: var(--color-bg); }
+  #wrap { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+  three-d-stage { width: 100%; height: 100%; display: block; }
+  .hud { position: absolute; pointer-events: none; z-index: 5; }
+  .hud > * { pointer-events: auto; }
+  #head { top: var(--space-8); left: var(--space-8); max-width: 30rem; }
+  #head .kicker { font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--color-accent-300); margin: 0 0 var(--space-2); }
+  #head h1 { font-size: 26px; font-weight: 500; margin: 0 0 var(--space-3); }
+  #head p { font-size: 13px; color: var(--color-neutral-300); margin: 0; max-width: 26rem; }
+  #panels { bottom: var(--space-8); left: var(--space-8); display: flex; flex-direction: column; gap: var(--space-6); }
+  .group { display: flex; flex-direction: column; gap: var(--space-2); }
+  .group h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--color-neutral-400); margin: 0; font-weight: 500; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .btn { white-space: nowrap; }
+  .btn[aria-pressed="true"] { border-color: var(--color-accent); color: var(--color-accent-100);
+    background: color-mix(in oklch, var(--color-accent) 16%, transparent); }
+  #meta { bottom: calc(var(--space-8) + 46px); right: var(--space-8); text-align: right; max-width: 22rem;
+    display: flex; flex-direction: column; gap: var(--space-2); }
+  #meta .note { font-size: 11px; color: var(--color-neutral-400); line-height: 1.6; margin: 0; }
+  #meta .num { font-size: 11px; color: var(--color-neutral-300);
+    font-variant-numeric: tabular-nums; margin: 0; letter-spacing: .04em; }
+  #legend { top: var(--space-8); right: var(--space-8); display: flex; flex-direction: column; gap: var(--space-2); }
+  .leg { display: flex; align-items: center; gap: var(--space-3); font-size: 11px; color: var(--color-neutral-300); }
+  .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  #calc { position: absolute; left: var(--space-8); top: 42%; z-index: 5; max-width: 22rem;
+    font-size: 11px; color: var(--color-neutral-300); line-height: 1.8; display: none; }
+  #calc code { color: var(--color-accent-200); }
+
+  /* ---- chế độ nhúng trong landing ---- */
+  html.embed #head { display: none; }
+  html.embed #legend, html.embed #panels, html.embed #meta {
+    font-size: 11px;
+  }
+  @media (max-width: 720px) {
+    html.embed #legend { display: none; }
+    html.embed #meta { display: none; }
+    html.embed #panels { bottom: 12px; left: 12px; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <three-d-stage name="roadwatch_a01_corridor" background="#161826"></three-d-stage>
+
+  <div class="hud" id="head">
+    <p class="kicker">RoadWatch · Spec tài sản 3D v1.0</p>
+    <h1>Asset 01 — Hành lang ego</h1>
+    <p>Đặc là thế giới. Trong suốt là suy luận. Nằm trong khung hình không có nghĩa là nằm trên đường đi của xe.</p>
+  </div>
+
+  <div class="hud" id="legend">
+    <div class="leg"><span class="sw" style="background:#2563EB"></span> MAT_EGO — xe ego</div>
+    <div class="leg"><span class="sw" style="background:#2A3441"></span> MAT_BODY_DARK</div>
+    <div class="leg"><span class="sw" style="background:#6B7B8F"></span> MAT_BODY_MID</div>
+    <div class="leg"><span class="sw" style="background:#3A4250"></span> MAT_GROUND</div>
+    <div class="leg"><span class="sw" style="background:#7C3AED"></span> MAT_INFER — lớp suy luận</div>
+    <div class="leg"><span class="sw" style="background:#DC2626"></span> MAT_ALERT — đã hiệu chuẩn</div>
+  </div>
+
+  <div class="hud" id="panels">
+    <div class="group">
+      <h2>Preset camera</h2>
+      <div class="row" id="cams">
+        <button class="btn btn-secondary" data-cam="dashcam">Dashcam</button>
+        <button class="btn btn-secondary" data-cam="topdown">Từ trên xuống</button>
+        <button class="btn btn-secondary" data-cam="orbit">Orbit home</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>Lớp hiển thị</h2>
+      <div class="row" id="layers">
+        <button class="btn btn-primary" data-layer="RW_A01_INF_FRUSTUM" aria-pressed="true">Hình nón camera</button>
+        <button class="btn btn-primary" data-layer="RW_A01_INF_CORRIDOR" aria-pressed="true">Hành lang ego</button>
+        <button class="btn btn-primary" data-layer="RW_A01_INF_DRIVABLE" aria-pressed="true">Drivable area</button>
+        <button class="btn btn-primary" data-layer="RW_A01_INF_BOXES" aria-pressed="true">Bounding box</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>Asset 02 — Nêm bất định</h2>
+      <div class="row" id="wedge">
+        <button class="btn btn-secondary" data-wedge="off" aria-pressed="true">Tắt</button>
+        <button class="btn btn-secondary" data-wedge="raw">Chưa hiệu chuẩn</button>
+        <button class="btn btn-secondary" data-wedge="cal">Sau hiệu chuẩn</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud" id="meta">
+    <p class="num" id="tris">—</p>
+    <p class="note">Xe ego là khối sedan trung tính, không thương hiệu, không lưới tản nhiệt, không biển số — theo §0 và §9 của spec.</p>
+  </div>
+
+  <div id="calc"></div>
+</div>
+
+<script src="./three-d-stage.js"></script>
+<script type="module" src="./corridor.js"></script>
+</body>
+</html>

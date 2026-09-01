@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/backend \
+    ROADWATCH_ASSET_GROUPS=voices \
+    ROADWATCH_TTS_VOICE=voices/vi_VN-vais1000-medium.onnx \
+    ROADWATCH_TTS_PRECACHE=1
+
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements-tts.txt ./
+RUN pip install --no-cache-dir -r requirements-tts.txt
+COPY backend ./backend
+COPY configs ./configs
+RUN mkdir -p /app/models /app/media /app/data /app/voices
+
+EXPOSE 8080
+CMD ["uvicorn", "roadwatch.tts_api:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -1,0 +1,27 @@
+services:
+  roadwatch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: roadwatch-copilot:local
+    ports:
+      - "8000:8000"
+    environment:
+      ROADWATCH_SOURCE: ${ROADWATCH_SOURCE:-test_video10.mp4}
+      ROADWATCH_DEVICE: cpu
+      ROADWATCH_RUNTIME: cpu
+      ROADWATCH_DISABLE_AUDIO: "1"
+      ROADWATCH_AUDIO_OUTPUT: browser
+      ROADWATCH_ALERT_COPY_PROFILE: ${ROADWATCH_ALERT_COPY_PROFILE:-vnext}
+      ROADWATCH_ALLOW_LAN: "1"
+    volumes:
+      - ./models:/app/models:ro
+      - ./media:/app/media:ro
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s

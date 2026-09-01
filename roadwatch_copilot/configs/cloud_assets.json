@@ -1,0 +1,34 @@
+{
+  "schema_version": "roadwatch.cloud-assets.v1",
+  "models": [
+    {"path": "yolo11n.onnx", "object": "models/yolo11n.onnx"},
+    {"path": "yolo11n_320.onnx", "object": "models/yolo11n_320.onnx"},
+    {"path": "yolo11n.names.json", "object": "models/yolo11n.names.json"},
+    {"path": "roadwatch_detector_v2.onnx", "object": "models/roadwatch_detector_v2.onnx"},
+    {"path": "roadwatch_detector_v2_416.onnx", "object": "models/roadwatch_detector_v2_416.onnx"},
+    {"path": "roadwatch_speed_digits_v2.onnx", "object": "models/roadwatch_speed_digits_v2.onnx"},
+    {"path": "yolop_lane_detection_640.onnx", "object": "models/yolop_lane_detection_640.onnx"},
+    {"path": "roadwatch_speed_digits_v2.pt", "object": "models/roadwatch_speed_digits_v2.pt"},
+    {"path": "qwen2.5-0.5b/config.json", "object": "models/qwen2.5-0.5b/config.json", "optional": true},
+    {"path": "qwen2.5-0.5b/tokenizer.json", "object": "models/qwen2.5-0.5b/tokenizer.json", "optional": true},
+    {"path": "qwen2.5-0.5b/onnx/model_q4f16.onnx", "object": "models/qwen2.5-0.5b/onnx/model_q4f16.onnx", "optional": true}
+  ],
+  "media": [
+    {"path": "test_video1.mp4", "object": "media/test_video1.mp4", "size_mb": 14.55, "fps": 25.0, "frame_count": 1046, "width": 1920, "height": 1080, "duration_seconds": 41.84},
+    {"path": "test_video10.mp4", "object": "media/test_video10.mp4", "size_mb": 87.23, "fps": 30.0, "frame_count": 5401, "width": 1920, "height": 1080, "duration_seconds": 180.033},
+    {"path": "dashcam_vietnam_night.mp4", "object": "media/dashcam_vietnam_night.mp4", "size_mb": 74.76, "fps": 30.0, "frame_count": 5401, "width": 1920, "height": 1080, "duration_seconds": 180.033},
+    {"path": "dashcam_vietnam_rain+night.mp4", "object": "media/dashcam_vietnam_rain+night.mp4", "size_mb": 75.8, "fps": 60.0, "frame_count": 6700, "width": 1920, "height": 1080, "duration_seconds": 111.667}
+  ],
+  "voices": [
+    {
+      "path": "vi_VN-vais1000-medium.onnx",
+      "object": "voices/vi_VN-vais1000-medium.onnx",
+      "sha256": "ec7c89e2c85f4d1edc24b6120c18aaf1bda614f06b511567eb9c7c0de15e2dab"
+    },
+    {
+      "path": "vi_VN-vais1000-medium.onnx.json",
+      "object": "voices/vi_VN-vais1000-medium.onnx.json",
+      "sha256": "fafb9da1354ed4b77c31af228ed41fb41cd825c14cffa105454b25e6ae751ee0"
+    }
+  ]
+}

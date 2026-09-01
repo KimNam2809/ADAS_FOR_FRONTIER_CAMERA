@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "tasks": ["RW-05", "RW-10"],
+  "owner": "trien-chieu",
+  "attestation": "Owner states that RW-05 and RW-10 were reviewed and fully accepted, but per-record notes were not retained.",
+  "recorded_at": "2026-08-22T15:20:00+07:00",
+  "acceptance_status": "owner_accepted",
+  "metric_evidence_status": "insufficient_per_record_ground_truth",
+  "queue_mutation": "none",
+  "reason": "Null event labels, lane counts and ego boundaries cannot be reconstructed from a global pass statement without inventing ground truth.",
+  "effect": {
+    "product_feedback": "accepted",
+    "rw05_metric_gate": "not_overridden",
+    "rw10_metric_gate": "not_overridden",
+    "rw11_dependency": "unblocked_by_RW-03",
+    "rw12_dependency": "remains_evidence_blocked_by_RW-05"
+  }
+}

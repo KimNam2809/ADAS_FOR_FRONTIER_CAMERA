@@ -1,0 +1,1801 @@
+{
+  "schema_version": 1,
+  "queue_type": "event_ground_truth_review",
+  "generated_at": "2026-08-21T05:24:50.734134+00:00",
+  "source": "dashcam_vietnam.mp4",
+  "source_sha256": "513AE901474C2B050CC51C65E97A914EA24FB0B27E2D2673DA55B230409201E3",
+  "policy": {
+    "target_verified_exhaustive_seconds": 600,
+    "target_verified_negative_seconds": 150,
+    "critical_event_types": [
+      "fcw",
+      "vulnerable_road_user",
+      "cross_traffic",
+      "lead_vehicle_braking",
+      "fallen_rider"
+    ],
+    "critical_windows_require_secondary_review": true,
+    "max_pre_adjudication_disagreement_rate": 0.1,
+    "allowed_event_types": [
+      "fcw",
+      "vulnerable_road_user",
+      "cut_in",
+      "cross_traffic",
+      "lane_departure",
+      "lead_vehicle_braking",
+      "speed_sign",
+      "traffic_sign",
+      "fallen_rider"
+    ],
+    "event_required_fields": [
+      "event_type",
+      "object_class",
+      "location",
+      "start_seconds",
+      "hazard_onset_seconds",
+      "deadline_seconds",
+      "end_seconds"
+    ],
+    "instruction": "Review each full 10-second clip, not only the reference frame. Mark is_negative=true only when no RoadWatch event exists."
+  },
+  "summary": {
+    "windows": 60,
+    "planned_coverage_seconds": 600.0,
+    "verified_coverage_seconds": 0,
+    "verified_negative_seconds": 0,
+    "status": "pending_human_review"
+  },
+  "event_coverage_exceptions": {
+    "fcw": null,
+    "vulnerable_road_user": null,
+    "cut_in": null,
+    "cross_traffic": null,
+    "lane_departure": null,
+    "lead_vehicle_braking": null,
+    "speed_sign": null,
+    "traffic_sign": null,
+    "fallen_rider": null
+  },
+  "windows": [
+    {
+      "window_id": "dashcam-vn-001",
+      "start_seconds": 21.026,
+      "end_seconds": 31.026,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0008_t0000026026.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-002",
+      "start_seconds": 55.56,
+      "end_seconds": 65.56,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0016_t0000060560.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-003",
+      "start_seconds": 78.534,
+      "end_seconds": 88.534,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0021_t0000081081.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-004",
+      "start_seconds": 131.637,
+      "end_seconds": 141.637,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0035_t0000136637.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-005",
+      "start_seconds": 163.668,
+      "end_seconds": 173.668,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0044_t0000168668.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-006",
+      "start_seconds": 196.335,
+      "end_seconds": 206.335,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0051_t0000197197.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-007",
+      "start_seconds": 264.869,
+      "end_seconds": 274.869,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0070_t0000272272.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-008",
+      "start_seconds": 274.869,
+      "end_seconds": 284.869,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0071_t0000278278.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-009",
+      "start_seconds": 316.321,
+      "end_seconds": 326.321,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0082_t0000321321.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-010",
+      "start_seconds": 376.882,
+      "end_seconds": 386.882,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0098_t0000381882.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-011",
+      "start_seconds": 416.921,
+      "end_seconds": 426.921,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0109_t0000421921.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-012",
+      "start_seconds": 454.959,
+      "end_seconds": 464.959,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0117_t0000459959.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-013",
+      "start_seconds": 498.503,
+      "end_seconds": 508.503,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0129_t0000503503.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-014",
+      "start_seconds": 532.037,
+      "end_seconds": 542.037,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0137_t0000537037.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-015",
+      "start_seconds": 573.578,
+      "end_seconds": 583.578,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0148_t0000578578.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-016",
+      "start_seconds": 590.595,
+      "end_seconds": 600.595,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0153_t0000595595.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-017",
+      "start_seconds": 637.142,
+      "end_seconds": 647.142,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0165_t0000642142.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-018",
+      "start_seconds": 684.188,
+      "end_seconds": 694.188,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0177_t0000689188.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-019",
+      "start_seconds": 709.714,
+      "end_seconds": 719.714,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0183_t0000714714.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-020",
+      "start_seconds": 762.267,
+      "end_seconds": 772.267,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0196_t0000767267.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-021",
+      "start_seconds": 813.818,
+      "end_seconds": 823.818,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0209_t0000818818.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-022",
+      "start_seconds": 828.833,
+      "end_seconds": 838.833,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0213_t0000833833.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-023",
+      "start_seconds": 863.874,
+      "end_seconds": 873.874,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0222_t0000865365.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-024",
+      "start_seconds": 932.408,
+      "end_seconds": 942.408,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0241_t0000940440.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-025",
+      "start_seconds": 942.408,
+      "end_seconds": 952.408,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0242_t0000944443.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-026",
+      "start_seconds": 1001.505,
+      "end_seconds": 1011.505,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0256_t0001006505.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-027",
+      "start_seconds": 1050.209,
+      "end_seconds": 1060.209,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0270_t0001059058.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-028",
+      "start_seconds": 1064.068,
+      "end_seconds": 1074.068,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0273_t0001069068.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-029",
+      "start_seconds": 1128.743,
+      "end_seconds": 1138.743,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0289_t0001136135.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-030",
+      "start_seconds": 1138.743,
+      "end_seconds": 1148.743,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0290_t0001140139.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-031",
+      "start_seconds": 1207.277,
+      "end_seconds": 1217.277,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0309_t0001214714.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-032",
+      "start_seconds": 1225.229,
+      "end_seconds": 1235.229,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0313_t0001230229.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-033",
+      "start_seconds": 1257.762,
+      "end_seconds": 1267.762,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0321_t0001262762.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-034",
+      "start_seconds": 1317.321,
+      "end_seconds": 1327.321,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0337_t0001322321.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-035",
+      "start_seconds": 1335.078,
+      "end_seconds": 1345.078,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0342_t0001337336.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-036",
+      "start_seconds": 1402.406,
+      "end_seconds": 1412.406,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0358_t0001407406.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-037",
+      "start_seconds": 1425.929,
+      "end_seconds": 1435.929,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0364_t0001430929.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-038",
+      "start_seconds": 1466.47,
+      "end_seconds": 1476.47,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0375_t0001471470.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-039",
+      "start_seconds": 1508.512,
+      "end_seconds": 1518.512,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0386_t0001513512.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-040",
+      "start_seconds": 1539.543,
+      "end_seconds": 1549.543,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0394_t0001544543.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-041",
+      "start_seconds": 1585.589,
+      "end_seconds": 1595.589,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0405_t0001590589.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-042",
+      "start_seconds": 1628.131,
+      "end_seconds": 1638.131,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0416_t0001633131.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-043",
+      "start_seconds": 1661.665,
+      "end_seconds": 1671.665,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0425_t0001666665.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-044",
+      "start_seconds": 1688.481,
+      "end_seconds": 1698.481,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0432_t0001692691.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-045",
+      "start_seconds": 1757.015,
+      "end_seconds": 1767.015,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0449_t0001762261.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-046",
+      "start_seconds": 1790.293,
+      "end_seconds": 1800.293,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0457_t0001795293.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-047",
+      "start_seconds": 1833.337,
+      "end_seconds": 1843.337,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0468_t0001838337.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-048",
+      "start_seconds": 1845.549,
+      "end_seconds": 1855.549,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0470_t0001847846.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-049",
+      "start_seconds": 1914.083,
+      "end_seconds": 1924.083,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0489_t0001921419.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-050",
+      "start_seconds": 1939.943,
+      "end_seconds": 1949.943,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0496_t0001944943.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-051",
+      "start_seconds": 1987.491,
+      "end_seconds": 1997.491,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0508_t0001992491.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-052",
+      "start_seconds": 2025.028,
+      "end_seconds": 2035.028,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0518_t0002030028.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-053",
+      "start_seconds": 2070.073,
+      "end_seconds": 2080.073,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0528_t0002075073.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-054",
+      "start_seconds": 2110.418,
+      "end_seconds": 2120.418,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0539_t0002117615.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-055",
+      "start_seconds": 2149.685,
+      "end_seconds": 2159.685,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0549_t0002158156.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-056",
+      "start_seconds": 2168.671,
+      "end_seconds": 2178.671,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0554_t0002173671.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-057",
+      "start_seconds": 2219.222,
+      "end_seconds": 2229.222,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0567_t0002224222.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-058",
+      "start_seconds": 2238.219,
+      "end_seconds": 2248.219,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0570_t0002239237.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-059",
+      "start_seconds": 2296.8,
+      "end_seconds": 2306.8,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0586_t0002301800.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    },
+    {
+      "window_id": "dashcam-vn-060",
+      "start_seconds": 2334.838,
+      "end_seconds": 2344.838,
+      "coverage_seconds": 10.0,
+      "reference_frame": "selected_frames/rw01_0595_t0002339838.jpg",
+      "auto_light_condition": "day",
+      "scene_conditions": [],
+      "exhaustive": true,
+      "is_negative": null,
+      "events": [],
+      "primary_review": {
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null
+      },
+      "secondary_review": {
+        "required": null,
+        "reviewer": null,
+        "status": "pending",
+        "reviewed_at": null,
+        "agrees_with_primary": null
+      },
+      "adjudication": {
+        "required": false,
+        "status": "not_required",
+        "notes": ""
+      }
+    }
+  ]
+}
