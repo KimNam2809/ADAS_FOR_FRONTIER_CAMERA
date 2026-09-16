@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["candidate_id", "evidence_sha256", "human_approved"],
+  "properties": {
+    "candidate_id": {"type": "string", "minLength": 3},
+    "evidence_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "human_approved": {"const": true},
+    "notes": {"type": "string"}
+  },
+  "additionalProperties": false
+}

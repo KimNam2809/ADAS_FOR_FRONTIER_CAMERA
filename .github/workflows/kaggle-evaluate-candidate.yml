@@ -1,0 +1,28 @@
+name: Kaggle · Evaluate Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      metrics_json:
+        description: Repository-relative JSON containing normalized candidate metrics
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python train-model-auto-in-kaggle/scripts/evaluate_candidate.py --metrics "${{ inputs.metrics_json }}"
+      - run: cat build/evaluation.json >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-evaluation
+          path: build/
+          retention-days: 30

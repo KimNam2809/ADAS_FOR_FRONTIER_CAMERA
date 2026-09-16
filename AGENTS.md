@@ -4314,3 +4314,34 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
   nhánh `roadwatch_project` không bị thay đổi.
 - Không có `.env`, token, model weights, video, voice, raw data, database,
   cache hoặc build output trong commit.
+
+## PRE-WORK — RW-KAGGLE-MOBILE-AUTOMATION-20260917
+
+- Mục tiêu: xây dựng GitHub Actions control plane để chủ dự án có thể submit,
+  theo dõi và lấy evidence của Kaggle training chỉ bằng điện thoại.
+- Nguồn chuẩn là `KimNam2809/ADAS_FOR_FRONTIER_CAMERA` nhánh `main`; P-162
+  đã archived chỉ dùng đối chiếu, không ghi dữ liệu hoặc mở PR vào đó.
+- Phạm vi đầu tiên là traffic-sign pilot/full dựa trên package Phase 2 đã khóa;
+  kiến trúc phải hỗ trợ hai Kaggle account nhưng không chạy train local/GitHub.
+- Guardrail: không commit `.env`/secret/model/video/dataset; preflight fail-closed;
+  không tự promote candidate; full run cần xác nhận rõ và promotion cần Human Gate.
+- Làm việc trong worktree sạch để không stage hoặc ghi đè worktree RoadWatch đang
+  có nhiều thay đổi local của chủ dự án.
+
+## POST-WORK — RW-KAGGLE-MOBILE-AUTOMATION-20260917
+
+- Đã thêm control plane `train-model-auto-in-kaggle/` gồm cấu hình pilot/full,
+  schema, package builder, Kaggle auth/preflight/submit/status/download,
+  evaluation, manual-promotion request, mobile summary và unit tests.
+- Đã thêm bảy workflow GitHub Actions: pilot, full, status, evidence download,
+  candidate evaluation, promotion preparation và CI. Workflow hỗ trợ chọn một
+  trong hai account bằng GitHub Secrets và không in token ra log.
+- Pilot chạy một epoch; full giữ 35 detector + 30 classifier epoch và chỉ chạy
+  khi nhập `RUN_FULL`. Mọi candidate giữ `auto_promote=false`; promotion workflow
+  chỉ tạo artifact request, không thay active model hoặc push model.
+- README hướng dẫn thao tác hoàn toàn bằng điện thoại và quy trình gửi log đã
+  redacted cho Bao Công khi job lỗi. `GEMINI_API_KEY` không được sử dụng/upload.
+- Verification: Python compile, unit tests, offline preflight và immutable
+  package generation phải pass trước khi push; workflow CI lặp lại cùng các gate.
+- Fallback: chưa merge vào `main` thì runtime RoadWatch không thay đổi; xóa/đóng
+  nhánh automation là đủ rollback. Training package nguồn không bị sửa trực tiếp.

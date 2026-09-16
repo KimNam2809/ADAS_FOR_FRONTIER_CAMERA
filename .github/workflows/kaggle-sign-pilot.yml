@@ -1,0 +1,75 @@
+name: Kaggle · Traffic Sign Pilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      account:
+        description: Kaggle account used to submit the job
+        required: true
+        type: choice
+        options: [account_1, account_2]
+        default: account_1
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: kaggle-sign-pilot-${{ inputs.account }}
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONUNBUFFERED: "1"
+      ACCOUNT_1_USERNAME: ${{ secrets.KAGGLE_USERNAME_ACCOUNT_1 }}
+      ACCOUNT_1_TOKEN: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_1 }}
+      ACCOUNT_2_USERNAME: ${{ secrets.KAGGLE_USERNAME_ACCOUNT_2 }}
+      ACCOUNT_2_TOKEN: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_2 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Select Kaggle account without printing secrets
+        shell: bash
+        run: |
+          if [[ "${{ inputs.account }}" == "account_2" ]]; then
+            echo "KAGGLE_USERNAME=$ACCOUNT_2_USERNAME" >> "$GITHUB_ENV"
+            echo "KAGGLE_API_TOKEN=$ACCOUNT_2_TOKEN" >> "$GITHUB_ENV"
+          else
+            echo "KAGGLE_USERNAME=$ACCOUNT_1_USERNAME" >> "$GITHUB_ENV"
+            echo "KAGGLE_API_TOKEN=$ACCOUNT_1_TOKEN" >> "$GITHUB_ENV"
+          fi
+      - name: Install control-plane dependency
+        run: python -m pip install "kaggle>=1.7,<2"
+      - name: Credential and dataset preflight
+        run: python train-model-auto-in-kaggle/scripts/preflight.py --config train-model-auto-in-kaggle/configs/sign_pilot.yaml
+      - name: Build immutable Kaggle package
+        run: python train-model-auto-in-kaggle/scripts/prepare_kernel.py --config train-model-auto-in-kaggle/configs/sign_pilot.yaml --owner "$KAGGLE_USERNAME"
+      - name: Submit GPU pilot
+        id: submit
+        run: python train-model-auto-in-kaggle/scripts/submit_kernel.py --package build/kernel
+      - name: Create mobile status issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KERNEL_REF: ${{ steps.submit.outputs.kernel_ref }}
+          KERNEL_URL: ${{ steps.submit.outputs.kernel_url }}
+        shell: bash
+        run: |
+          gh label create kaggle-run --color 0969DA --force
+          gh label create needs-quality-gate --color FBCA04 --force
+          gh issue create --title "[Kaggle][Pilot] $KERNEL_REF" --label kaggle-run,needs-quality-gate --body "Account: ${{ inputs.account }}
+          Kernel: [$KERNEL_REF]($KERNEL_URL)
+          Commit: $GITHUB_SHA
+          Status: SUBMITTED
+
+          Sau khi Kaggle COMPLETE, chạy workflow **Kaggle · Job Status** rồi **Download Evidence**. Không promote tự động."
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaggle-sign-pilot-control-evidence
+          path: build/
+          retention-days: 14
