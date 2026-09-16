@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["kernel_ref", "status", "checked_at"],
+  "properties": {
+    "kernel_ref": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+    "status": {"enum": ["QUEUED", "RUNNING", "COMPLETE", "ERROR", "UNKNOWN"]},
+    "checked_at": {"type": "string"},
+    "details": {"type": "string"}
+  },
+  "additionalProperties": false
+}
+

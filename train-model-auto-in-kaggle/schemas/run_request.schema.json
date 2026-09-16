@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RoadWatch Kaggle run request",
+  "type": "object",
+  "required": ["pipeline", "mode", "account"],
+  "properties": {
+    "pipeline": {"enum": ["traffic_sign", "object", "lane"]},
+    "mode": {"enum": ["pilot", "smoke", "full"]},
+    "account": {"enum": ["account_1", "account_2"]},
+    "confirm_full": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}
+

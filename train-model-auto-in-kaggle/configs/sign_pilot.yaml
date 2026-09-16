@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_mode": "pilot",
+  "kernel_slug": "roadwatch-sign-v3-pilot",
+  "kernel_title": "RoadWatch Sign V3 Pilot",
+  "source_package": "kaggle/train_sign_phase2",
+  "detector_epochs": 1,
+  "classifier_epochs": 1,
+  "quality_gate_approved": true,
+  "gpu_required": true,
+  "internet_enabled": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "lapnguyen2003/traffic-sign-detection-vietnam",
+    "lekimnam/roadwatch-vietnam-sign-seed-model",
+    "maitam/vietnamese-traffic-signs",
+    "meowmeowmeowmeowmeow/gtsrb-german-traffic-sign"
+  ]
+}
+

@@ -75,3 +75,6 @@ reports/**/*.jpeg
 reports/**/*.png
 reports/**/*.mp4
 reports/kaggle-*/
+
+# GitHub Actions/Kaggle control-plane local smoke output
+/build/

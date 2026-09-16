@@ -1,0 +1,12 @@
+{
+  "account_1": {
+    "username_secret": "KAGGLE_USERNAME_ACCOUNT_1",
+    "token_secret": "KAGGLE_API_TOKEN_ACCOUNT_1",
+    "purpose": "traffic-sign/object training"
+  },
+  "account_2": {
+    "username_secret": "KAGGLE_USERNAME_ACCOUNT_2",
+    "token_secret": "KAGGLE_API_TOKEN_ACCOUNT_2",
+    "purpose": "lane training or overflow"
+  }
+}

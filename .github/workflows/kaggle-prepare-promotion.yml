@@ -1,0 +1,35 @@
+name: Kaggle · Prepare Promotion Request
+
+on:
+  workflow_dispatch:
+    inputs:
+      evaluation_json:
+        required: true
+        type: string
+      candidate_id:
+        required: true
+        type: string
+      human_confirmation:
+        description: Type HUMAN_GATE_PASS
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-only:
+    if: inputs.human_confirmation == 'HUMAN_GATE_PASS'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python train-model-auto-in-kaggle/scripts/prepare_promotion.py --evaluation "${{ inputs.evaluation_json }}" --candidate-id "${{ inputs.candidate_id }}" --human-approved
+      - run: cat build/promotion_request.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manual-promotion-request
+          path: build/promotion_request.json
+          retention-days: 30
+

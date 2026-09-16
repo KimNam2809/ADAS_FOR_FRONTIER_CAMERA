@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "static_metrics": {
+    "detector_precision_min": 0.95,
+    "detector_recall_min": 0.95,
+    "detector_map50_min": 0.98,
+    "detector_map50_95_min": 0.82,
+    "speed_top1_min": 0.98
+  },
+  "system_metrics": {
+    "banner_tts_equality": 1.0,
+    "pipeline_errors_max": 0,
+    "numeric_speed_false_positive_max": 0
+  },
+  "human_gate_required": true,
+  "auto_promote": false
+}
+

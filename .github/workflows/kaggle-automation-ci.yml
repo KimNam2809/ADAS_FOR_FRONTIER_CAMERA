@@ -1,0 +1,34 @@
+name: Kaggle Automation · CI
+
+on:
+  pull_request:
+    paths:
+      - "train-model-auto-in-kaggle/**"
+      - ".github/workflows/kaggle-*.yml"
+  push:
+    branches: [main]
+    paths:
+      - "train-model-auto-in-kaggle/**"
+      - ".github/workflows/kaggle-*.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Compile scripts
+        run: python -m compileall -q train-model-auto-in-kaggle/scripts
+      - name: Run automation tests
+        run: python -m unittest discover -s train-model-auto-in-kaggle/tests -v
+      - name: Offline preflight
+        run: python train-model-auto-in-kaggle/scripts/preflight.py --config train-model-auto-in-kaggle/configs/sign_pilot.yaml --skip-remote
+      - name: Package safety check
+        run: python train-model-auto-in-kaggle/scripts/prepare_kernel.py --config train-model-auto-in-kaggle/configs/sign_pilot.yaml --owner ci-owner
+      - name: Verify no local training process was launched
+        run: python -c "import json; assert json.load(open('build/preflight.json'))['local_training_started'] is False"
+

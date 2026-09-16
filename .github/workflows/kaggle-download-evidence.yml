@@ -1,0 +1,47 @@
+name: Kaggle · Download Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_ref:
+        required: true
+        type: string
+      account:
+        required: true
+        type: choice
+        options: [account_1, account_2]
+        default: account_1
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ACCOUNT_1_USERNAME: ${{ secrets.KAGGLE_USERNAME_ACCOUNT_1 }}
+      ACCOUNT_1_TOKEN: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_1 }}
+      ACCOUNT_2_USERNAME: ${{ secrets.KAGGLE_USERNAME_ACCOUNT_2 }}
+      ACCOUNT_2_TOKEN: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_2 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - shell: bash
+        run: |
+          if [[ "${{ inputs.account }}" == "account_2" ]]; then
+            echo "KAGGLE_USERNAME=$ACCOUNT_2_USERNAME" >> "$GITHUB_ENV"
+            echo "KAGGLE_API_TOKEN=$ACCOUNT_2_TOKEN" >> "$GITHUB_ENV"
+          else
+            echo "KAGGLE_USERNAME=$ACCOUNT_1_USERNAME" >> "$GITHUB_ENV"
+            echo "KAGGLE_API_TOKEN=$ACCOUNT_1_TOKEN" >> "$GITHUB_ENV"
+          fi
+      - run: python -m pip install "kaggle>=1.7,<2"
+      - run: python train-model-auto-in-kaggle/scripts/download_evidence.py --kernel "${{ inputs.kernel_ref }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roadwatch-kaggle-evidence
+          path: evidence/
+          retention-days: 14
+
