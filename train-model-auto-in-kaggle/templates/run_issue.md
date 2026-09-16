@@ -8,4 +8,3 @@
 - Status: `{{STATUS}}`
 
 Điều khiển bằng điện thoại tại **Actions**. Không promote model từ issue này.
-

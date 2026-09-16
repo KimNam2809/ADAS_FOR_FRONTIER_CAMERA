@@ -36,4 +36,3 @@ class QualityGateTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

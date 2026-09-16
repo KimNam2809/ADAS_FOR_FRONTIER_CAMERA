@@ -32,4 +32,3 @@ jobs:
           name: manual-promotion-request
           path: build/promotion_request.json
           retention-days: 30
-

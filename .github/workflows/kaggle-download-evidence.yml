@@ -44,4 +44,3 @@ jobs:
           name: roadwatch-kaggle-evidence
           path: evidence/
           retention-days: 14
-

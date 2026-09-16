@@ -83,4 +83,3 @@ def set_github_output(name: str, value: str) -> None:
     if output:
         with Path(output).open("a", encoding="utf-8") as handle:
             handle.write(f"{name}={value}\n")
-

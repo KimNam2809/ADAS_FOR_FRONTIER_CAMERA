@@ -31,4 +31,3 @@ jobs:
         run: python train-model-auto-in-kaggle/scripts/prepare_kernel.py --config train-model-auto-in-kaggle/configs/sign_pilot.yaml --owner ci-owner
       - name: Verify no local training process was launched
         run: python -c "import json; assert json.load(open('build/preflight.json'))['local_training_started'] is False"
-

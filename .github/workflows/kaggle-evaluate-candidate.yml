@@ -26,4 +26,3 @@ jobs:
           name: candidate-evaluation
           path: build/
           retention-days: 30
-
