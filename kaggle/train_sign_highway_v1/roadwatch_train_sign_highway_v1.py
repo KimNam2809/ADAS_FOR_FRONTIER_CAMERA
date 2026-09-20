@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -92,7 +94,13 @@ def main() -> int:
     if "__QUALITY_GATE_APPROVED__" != "PASS":
         raise RuntimeError("Training requires QUALITY_GATE_APPROVED=PASS")
 
-    from ultralytics import YOLO
+    try:
+        from ultralytics import YOLO
+    except ImportError:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--quiet", "ultralytics==8.3.203"]
+        )
+        from ultralytics import YOLO
     model = YOLO(os.getenv("BASE_MODEL", "yolo11s.pt"))
     result = model.train(
         data=str(yaml_path), epochs=EPOCHS[mode], imgsz=960, batch=-1,
