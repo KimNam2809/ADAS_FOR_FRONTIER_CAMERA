@@ -33,13 +33,20 @@ class SignPolicy:
         validate_alert_message(self.message)
 
 
-_SPEED_RE = re.compile(r"^Speed limit (\d+)km/h$", re.IGNORECASE)
+_SPEED_RE = re.compile(
+    r"^(?:Speed limit|speed_limit_max(?:imum)?)[\s_-]*(\d+)\s*(?:km/?h)?$",
+    re.IGNORECASE,
+)
 _MIN_SPEED_RE = re.compile(
-    r"^(?:minimum speed(?: limit)?|minimum_speed|min speed|speed minimum)[\s_-]*(\d+)\s*(?:km/?h)?$",
+    r"^(?:minimum speed(?: limit)?|minimum_speed|speed_limit_min(?:imum)?|min speed|speed minimum)[\s_-]*(\d+)\s*(?:km/?h)?$",
     re.IGNORECASE,
 )
 _NUMERIC_SPEEDS = {"10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110", "120"}
-_GENERIC_SPEED_LABELS = {"speed_limit", "speed limit", "speed-limit"}
+_GENERIC_MAX_SPEED_LABELS = {
+    "speed_limit", "speed limit", "speed-limit", "speed_limit_max", "speed_limit_maximum"
+}
+_GENERIC_MIN_SPEED_LABELS = {"speed_limit_min", "speed_limit_minimum", "minimum_speed"}
+_GENERIC_SPEED_LABELS = _GENERIC_MAX_SPEED_LABELS | _GENERIC_MIN_SPEED_LABELS
 
 
 # Safety/action signs are spoken. Low-urgency facilities and parking signs are
@@ -169,6 +176,12 @@ _POLICIES.update(
         "No Parking": SignPolicy("parking_restriction", "informational", "Cấm đỗ xe.", 0.18, False),
         "No Parking Odd Days": SignPolicy("parking_restriction", "informational", "Cấm đỗ ngày lẻ.", 0.18, False),
         "Even Days": SignPolicy("parking_restriction", "informational", "Hạn chế đỗ ngày chẵn.", 0.18, False),
+        "no_entry": _POLICIES["No Entry"],
+        "no_cars": _POLICIES["No Cars"],
+        "no_trucks": _POLICIES["No Trucks"],
+        "no_buses": SignPolicy("prohibition", "advisory", "Cấm xe buýt.", 0.40),
+        "no_motorcycles": SignPolicy("prohibition", "advisory", "Cấm xe máy.", 0.40),
+        "no_vehicles": SignPolicy("prohibition", "advisory", "Cấm phương tiện phía trước.", 0.44),
     }
 )
 

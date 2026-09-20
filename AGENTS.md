@@ -4345,3 +4345,15 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
   package generation phải pass trước khi push; workflow CI lặp lại cùng các gate.
 - Fallback: chưa merge vào `main` thì runtime RoadWatch không thay đổi; xóa/đóng
   nhánh automation là đủ rollback. Training package nguồn không bị sửa trực tiếp.
+# PRE-WORK — SIGN-V3-MENTOR-REPORT-AND-HIGHWAY-LOOP — 2026-09-20
+
+- Add phone-operated Kaggle quality-gate, pilot, smoke, and full candidate jobs.
+- Preserve V2; separate maximum/minimum speed and highway restriction taxonomy.
+
+# POST-WORK — SIGN-V3-MENTOR-REPORT-AND-HIGHWAY-LOOP — 2026-09-20
+
+- Added Highway Sign V1 GitHub Actions, Kaggle trainer, CVAT evidence tools and
+  mobile runbook. Training requires explicit human PASS and never auto-promotes.
+- Runtime now preserves maximum/minimum roles through digit classification and
+  accepts explicit restricted-vehicle labels without relying on red-ring shape.
+- Targeted sign, CVAT, context, lifecycle, and API tests passed before handoff.

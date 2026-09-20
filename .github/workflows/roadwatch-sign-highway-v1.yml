@@ -1,0 +1,140 @@
+name: RoadWatch Sign Highway V1
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: Quality gate, pilot, smoke, or full
+        required: true
+        type: choice
+        options: [quality_gate, pilot, smoke, full]
+        default: quality_gate
+      quality_gate_approved:
+        description: Type PASS only after reviewing the previous artifact
+        required: true
+        default: NOT_REVIEWED
+      dataset_slug:
+        description: Kaggle dataset slug containing the reviewed CVAT YOLO export
+        required: true
+      kernel_slug:
+        description: Unique Kaggle kernel slug for this submission
+        required: true
+        default: roadwatch-sign-highway-v1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: roadwatch-sign-highway-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  submit-kaggle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      RUN_MODE: ${{ inputs.run_mode }}
+      QUALITY_GATE_APPROVED: ${{ inputs.quality_gate_approved }}
+      HIGHWAY_DATASET_SLUG: ${{ inputs.dataset_slug }}
+      KERNEL_SLUG: ${{ inputs.kernel_slug }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate dispatch and credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$KAGGLE_USERNAME"
+          test -n "$KAGGLE_KEY"
+          if [[ "$RUN_MODE" != "quality_gate" && "$QUALITY_GATE_APPROVED" != "PASS" ]]; then
+            echo "Pilot/smoke/full require quality_gate_approved=PASS" >&2
+            exit 2
+          fi
+          python -m pip install --disable-pip-version-check kaggle==1.7.4.5
+          kaggle datasets files "$HIGHWAY_DATASET_SLUG" --page-size 5 >/dev/null
+
+      - name: Build Kaggle kernel package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .kaggle-kernel
+          cp kaggle/train_sign_highway_v1/roadwatch_train_sign_highway_v1.py .kaggle-kernel/script.py
+          python - <<'PY'
+          import json, os
+          path = '.kaggle-kernel/script.py'
+          source = open(path, encoding='utf-8').read()
+          source = source.replace('__RUN_MODE__', os.environ['RUN_MODE'])
+          source = source.replace('__QUALITY_GATE_APPROVED__', os.environ['QUALITY_GATE_APPROVED'])
+          open(path, 'w', encoding='utf-8').write(source)
+          metadata = {
+              "id": f"{os.environ['KAGGLE_USERNAME']}/{os.environ['KERNEL_SLUG']}",
+              "title": "RoadWatch Sign Highway V1",
+              "code_file": "script.py",
+              "language": "python",
+              "kernel_type": "script",
+              "is_private": "true",
+              "enable_gpu": "true",
+              "enable_internet": "true",
+              "machine_shape": "NvidiaTeslaT4",
+              "dataset_sources": [os.environ["HIGHWAY_DATASET_SLUG"]],
+              "competition_sources": [], "kernel_sources": [], "model_sources": []
+          }
+          with open('.kaggle-kernel/kernel-metadata.json', 'w', encoding='utf-8') as f:
+              json.dump(metadata, f, indent=2)
+          PY
+
+      - name: Submit Kaggle job
+        shell: bash
+        run: |
+          set -euo pipefail
+          kaggle kernels push -p .kaggle-kernel
+          echo "KERNEL_REF=${KAGGLE_USERNAME}/${KERNEL_SLUG}" >> "$GITHUB_ENV"
+
+      - name: Wait for Kaggle completion
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 180); do
+            status=$(kaggle kernels status "$KERNEL_REF" 2>&1 | tee /tmp/status.txt)
+            echo "$status"
+            if grep -qi complete /tmp/status.txt; then exit 0; fi
+            if grep -Eqi 'error|cancel' /tmp/status.txt; then exit 3; fi
+            sleep 60
+          done
+          echo "Timed out waiting for Kaggle" >&2
+          exit 4
+
+      - name: Download evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          kaggle kernels output "$KERNEL_REF" -p artifacts --force || true
+          printf '%s\n' "$KERNEL_REF" > artifacts/kernel_ref.txt
+
+      - name: Enforce machine status
+        if: success()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          path = next(pathlib.Path('artifacts').rglob('job_status.json'))
+          data = json.loads(path.read_text())
+          if data.get('status') not in {'QUALITY_GATE_READY', 'TRAINING_COMPLETE'}:
+              raise SystemExit(f"Unexpected status: {data}")
+          print(json.dumps(data, indent=2))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: roadwatch-sign-highway-${{ inputs.run_mode }}-${{ github.run_number }}
+          path: artifacts
+          if-no-files-found: warn
+          retention-days: 30

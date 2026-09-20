@@ -12,7 +12,7 @@ import cv2
 import numpy as np
 
 from .config import ConfigManager
-from .signs import is_speed_limit_label, speed_value
+from .signs import is_minimum_speed_label, is_speed_limit_label, speed_value
 
 
 LOGGER = logging.getLogger(__name__)
@@ -476,9 +476,15 @@ class TrafficSignEnsemble:
             detections[index]["speed_classifier_confidence"] = round(confidence, 4)
             if value is None:
                 continue
-            detections[index]["detector_label"] = detections[index]["label"]
+            detector_label = str(detections[index]["label"])
+            detections[index]["detector_label"] = detector_label
             detections[index]["detector_class_id"] = detections[index]["class_id"]
-            detections[index]["label"] = str(value)
+            detections[index]["label"] = (
+                f"speed_limit_min_{value}"
+                if detector_label.strip().lower() in {"speed_limit_min", "speed_limit_minimum", "minimum_speed"}
+                or is_minimum_speed_label(detector_label)
+                else str(value)
+            )
             detections[index]["class_id"] = 10_000 + value
             detections[index]["speed_value_source"] = "crop_classifier"
         return detections, latency + (time.perf_counter() - started) * 1000
