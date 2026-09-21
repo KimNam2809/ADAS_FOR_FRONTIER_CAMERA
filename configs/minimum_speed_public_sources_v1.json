@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "canonical_target": "speed_limit_min",
+  "sign_standard": {
+    "country": "Vietnam",
+    "standard": "QCVN 41:2024/BGTVT",
+    "code": "R.306",
+    "visual": "blue circular sign with white speed digits",
+    "end_code": "R.307"
+  },
+  "sources": [
+    {
+      "slug": "braunge/tt100k",
+      "role": "minimum-speed detector transfer source",
+      "class_mapping": {"il50": "speed_limit_min", "il60": "speed_limit_min", "il70": "speed_limit_min", "il80": "speed_limit_min", "il90": "speed_limit_min", "il100": "speed_limit_min", "il110": "speed_limit_min"},
+      "license": "CC BY-NC 2.0 upstream",
+      "release_tier": "R",
+      "notes": "Kaggle mirror metadata says unknown; upstream license controls. Research candidate only."
+    },
+    {
+      "slug": "lapnguyen2003/traffic-sign-detection-vietnam",
+      "role": "Vietnam maximum-speed replay plus red-ring hard negatives",
+      "class_mapping": {"speed classes": "speed_limit_max"},
+      "license": "Apache-2.0 per Kaggle metadata",
+      "release_tier": "V",
+      "notes": "Verify original image provenance before commercial release."
+    },
+    {
+      "slug": "maitam/vietnamese-traffic-signs",
+      "role": "existing RoadWatch speed digit replay; not used by builder V1",
+      "license": "CC BY-SA 4.0 per Kaggle metadata",
+      "release_tier": "V",
+      "notes": "Contains maximum-speed values 40/50/60/80, not blue minimum-speed signs."
+    },
+    {
+      "slug": "meowmeowmeowmeowmeow/gtsrb-german-traffic-sign",
+      "role": "existing maximum-speed classifier replay; not used by builder V1",
+      "license": "CC0 as recorded by the existing RoadWatch pipeline",
+      "release_tier": "P",
+      "notes": "Does not provide the Vietnamese blue minimum-speed domain."
+    }
+  ],
+  "target_domain_policy": {
+    "hanoi_haiphong_videos": "locked independent CVAT/replay test until explicitly promoted",
+    "train_test_leakage": "forbidden",
+    "red_ring_semantic_inference": "forbidden",
+    "commercial_claim": "forbidden while TT100K remains in candidate weights"
+  }
+}

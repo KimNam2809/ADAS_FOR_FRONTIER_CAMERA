@@ -14,8 +14,20 @@ on:
         required: true
         default: NOT_REVIEWED
       dataset_slug:
-        description: Kaggle dataset slug containing the reviewed CVAT YOLO export
+        description: Kaggle owner/dataset or owner/kernel containing prepared data
         required: true
+      source_type:
+        description: Read a Dataset or the output of the public-data builder
+        required: true
+        type: choice
+        options: [dataset, kernel_output]
+        default: dataset
+      dataset_profile:
+        description: Required taxonomy gate for this candidate
+        required: true
+        type: choice
+        options: [minimum_speed, highway_full]
+        default: minimum_speed
       kernel_slug:
         description: Unique Kaggle kernel slug for this submission
         required: true
@@ -38,6 +50,8 @@ jobs:
       RUN_MODE: ${{ inputs.run_mode }}
       QUALITY_GATE_APPROVED: ${{ inputs.quality_gate_approved }}
       HIGHWAY_DATASET_SLUG: ${{ inputs.dataset_slug }}
+      DATASET_PROFILE: ${{ inputs.dataset_profile }}
+      SOURCE_TYPE: ${{ inputs.source_type }}
       KERNEL_SLUG: ${{ inputs.kernel_slug }}
     steps:
       - uses: actions/checkout@v4
@@ -56,8 +70,18 @@ jobs:
             echo "Pilot/smoke/full require quality_gate_approved=PASS" >&2
             exit 2
           fi
-          python -m pip install --disable-pip-version-check kaggle==1.7.4.5
-          kaggle datasets files "$HIGHWAY_DATASET_SLUG" --page-size 5 >/dev/null
+          python -m pip install --disable-pip-version-check kaggle==2.2.4
+          if [[ "$KAGGLE_KEY" == KGAT* ]]; then
+            export KAGGLE_API_TOKEN="$KAGGLE_KEY"
+            echo "KAGGLE_API_TOKEN=$KAGGLE_KEY" >> "$GITHUB_ENV"
+            unset KAGGLE_KEY
+            echo "KAGGLE_KEY=" >> "$GITHUB_ENV"
+          fi
+          if [[ "$SOURCE_TYPE" == kernel_output ]]; then
+            kaggle kernels status "$HIGHWAY_DATASET_SLUG" | grep -qi complete
+          else
+            kaggle datasets files "$HIGHWAY_DATASET_SLUG" --page-size 5 >/dev/null
+          fi
 
       - name: Build Kaggle kernel package
         shell: bash
@@ -71,6 +95,7 @@ jobs:
           source = open(path, encoding='utf-8').read()
           source = source.replace('__RUN_MODE__', os.environ['RUN_MODE'])
           source = source.replace('__QUALITY_GATE_APPROVED__', os.environ['QUALITY_GATE_APPROVED'])
+          source = source.replace('__DATASET_PROFILE__', os.environ['DATASET_PROFILE'])
           open(path, 'w', encoding='utf-8').write(source)
           metadata = {
               "id": f"{os.environ['KAGGLE_USERNAME']}/{os.environ['KERNEL_SLUG']}",
@@ -82,8 +107,10 @@ jobs:
               "enable_gpu": "true",
               "enable_internet": "true",
               "machine_shape": "NvidiaTeslaT4",
-              "dataset_sources": [os.environ["HIGHWAY_DATASET_SLUG"]],
-              "competition_sources": [], "kernel_sources": [], "model_sources": []
+              "dataset_sources": [os.environ["HIGHWAY_DATASET_SLUG"]] if os.environ['SOURCE_TYPE'] == 'dataset' else [],
+              "competition_sources": [],
+              "kernel_sources": [os.environ["HIGHWAY_DATASET_SLUG"]] if os.environ['SOURCE_TYPE'] == 'kernel_output' else [],
+              "model_sources": []
           }
           with open('.kaggle-kernel/kernel-metadata.json', 'w', encoding='utf-8') as f:
               json.dump(metadata, f, indent=2)

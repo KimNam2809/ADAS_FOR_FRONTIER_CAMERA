@@ -4347,6 +4347,14 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
   nhánh automation là đủ rollback. Training package nguồn không bị sửa trực tiếp.
 # PRE-WORK — SIGN-V3-MENTOR-REPORT-AND-HIGHWAY-LOOP — 2026-09-20
 
+## PRE-WORK — MINIMUM-SPEED-PUBLIC-DATA — 2026-09-21
+
+- Prepare public minimum-speed data on Kaggle; keep training gated by human review.
+- Verify source class semantics visually; TT100K il* means minimum speed, pm*
+  means mass restriction. Reject builder V1/V2 outputs using the wrong mapping.
+- Preserve production V2. Candidate weights using TT100K remain research-only.
+- Fix nested-label audit and portable paths; document exact mobile dispatch steps.
+
 - Add phone-operated Kaggle quality-gate, pilot, smoke, and full candidate jobs.
 - Preserve V2; separate maximum/minimum speed and highway restriction taxonomy.
 

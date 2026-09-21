@@ -1,0 +1,14 @@
+{
+  "id": "lekimnam/roadwatch-audit-minimum-speed-public-v1",
+  "title": "RoadWatch Audit Minimum Speed Public V1",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": ["lekimnam/roadwatch-build-minimum-speed-public-v1"],
+  "model_sources": []
+}

@@ -22,8 +22,23 @@ environment secret scope.
 2. Export Ultralytics YOLO.
 3. Upload the ZIP as a private Kaggle Dataset.
 4. Record its slug, for example `lekimnam/roadwatch-highway-sign-v1`.
-5. The dataset must contain exactly one `data.yaml` or `dataset.yaml` and include
-   at least `speed_limit_max`, `speed_limit_min`, `no_trucks`, and `no_vehicles`.
+5. The dataset must contain exactly one `data.yaml` or `dataset.yaml`.
+6. Choose `minimum_speed` when the reviewed dataset contains
+   `speed_limit_max` and `speed_limit_min`. Choose `highway_full` only when it
+   additionally contains reviewed `no_trucks` and `no_vehicles` samples.
+
+Prepared public-data candidate:
+
+- Kaggle source builder: `roadwatch-build-minimum-speed-public-v1`.
+- Prepared data is stored in private builder output. Select `source_type=kernel_output`
+  and `dataset_slug=lekimnam/roadwatch-build-minimum-speed-public-v1` only after
+  the corrected version passes review. No separate Dataset upload is required.
+- The candidate combines TT100K `il*` minimum-speed signs, Vietnamese
+  maximum-speed replay, and red-ring non-speed hard negatives.
+- Because TT100K is CC BY-NC, this candidate is research-only. It must not be
+  represented as a commercially releasable VinFast model.
+- Hanoi-Hai Phong footage remains an independent CVAT/replay test set and must
+  not be copied into this training dataset.
 
 ## Run from a phone
 
@@ -34,6 +49,8 @@ Open GitHub → Actions → `RoadWatch Sign Highway V1` → Run workflow.
 - `run_mode`: `quality_gate`
 - `quality_gate_approved`: `NOT_REVIEWED`
 - `dataset_slug`: the private Kaggle dataset slug
+- `dataset_profile`: `minimum_speed`
+- `source_type`: `kernel_output` for the prepared builder above; otherwise `dataset`.
 - `kernel_slug`: `roadwatch-sign-highway-v1-qg`
 
 After completion, download the GitHub Artifact and inspect:
@@ -78,3 +95,19 @@ The workflow intentionally does not promote a model. Candidate promotion needs:
 - explicit human approval.
 
 Until all gates pass, `roadwatch_detector_v2.onnx` remains active.
+
+## Minimum-speed visual gate
+
+Before typing `PASS`, inspect the builder contact sheets and confirm:
+
+- blue circular signs with white digits are labeled `speed_limit_min`;
+- red-bordered circular maximum-speed signs are labeled `speed_limit_max`;
+- no-entry, no-truck, height/weight restrictions and other red-ring signs are
+  not labeled as speed;
+- train and validation do not contain duplicate scenes;
+- at least 20 train and 5 validation minimum-speed instances exist.
+
+The first model is a type detector (`maximum` versus `minimum`). TT100K `pm`
+means weight restriction and must never be mapped to minimum speed.
+Numeric minimum-speed accuracy must be tested separately on reviewed
+Vietnamese CVAT crops before any announcement such as 60/80/90 km/h is enabled.
