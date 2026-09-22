@@ -19,6 +19,7 @@ NAMES = ["speed_limit_max", "speed_limit_min"]
 MAX_IMAGE_EDGE = 1600
 JPEG_QUALITY = 88
 TT100K_MAX_ONLY_KEEP_PERCENT = 16
+CONTENT_SPLITS: dict[str, str] = {}
 
 # Verified against lapnguyen2003/traffic-sign-detection-vietnam/classid.xlsx.
 VN_MAX_IDS = {2, 12, 39, 40, 41, 57, 58, 59, 60, 61, 62, 63}
@@ -97,6 +98,10 @@ def split_for(source: str, image: Path) -> str:
     # Keep duplicate-looking TT100K derivatives together to reduce leakage.
     group = re.sub(r"\s*\(\d+\)$", "", image.stem)
     source = "vietnam" if source.startswith("vietnam") else source
+    # Vietnam images are extracted video-like sequences. Keep adjacent frame IDs
+    # together so highly similar neighbouring frames cannot cross the split.
+    if source == "vietnam" and group.isdigit():
+        group = f"sequence_{int(group) // 50:06d}"
     bucket = int(hashlib.sha1(f"{source}:{group}".encode()).hexdigest()[:8], 16) % 10
     return "val" if bucket < 2 else "train"
 
@@ -129,17 +134,21 @@ def write_sample(
     *,
     negative: bool = False,
 ) -> dict[str, object]:
-    split = split_for(source, image)
     source_hash = hashlib.sha1(str(image).encode()).hexdigest()[:12]
     stem = f"{source}_{source_hash}_{re.sub(r'[^A-Za-z0-9_-]+', '_', image.stem)[:60]}"
-    image_target = DATASET / "images" / split / f"{stem}.jpg"
-    label_target = DATASET / "labels" / split / f"{stem}.txt"
-    image_target.parent.mkdir(parents=True, exist_ok=True)
-    label_target.parent.mkdir(parents=True, exist_ok=True)
     # Normalized YOLO coordinates remain valid after proportional resizing. JPEG
     # output prevents the large TT100K PNG corpus from exhausting Kaggle storage.
     with Image.open(image).convert("RGB") as source_image:
         source_image.thumbnail((MAX_IMAGE_EDGE, MAX_IMAGE_EDGE), Image.Resampling.LANCZOS)
+        content_key = hashlib.sha256(
+            f"{source_image.size}:{source_image.mode}".encode() + source_image.tobytes()
+        ).hexdigest()
+        proposed_split = split_for(source, image)
+        split = CONTENT_SPLITS.setdefault(content_key, proposed_split)
+        image_target = DATASET / "images" / split / f"{stem}.jpg"
+        label_target = DATASET / "labels" / split / f"{stem}.txt"
+        image_target.parent.mkdir(parents=True, exist_ok=True)
+        label_target.parent.mkdir(parents=True, exist_ok=True)
         source_image.save(image_target, format="JPEG", quality=JPEG_QUALITY, optimize=True)
     label_target.write_text(
         "\n".join(
