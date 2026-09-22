@@ -122,13 +122,15 @@ def main() -> int:
     if "__QUALITY_GATE_APPROVED__" != "PASS":
         raise RuntimeError("Training requires QUALITY_GATE_APPROVED=PASS")
 
-    try:
-        from ultralytics import YOLO
-    except ImportError:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "--quiet", "ultralytics==8.3.203"]
-        )
-        from ultralytics import YOLO
+    # Install the complete export stack before importing Ultralytics. Installing
+    # missing packages lazily during export requires a runtime restart on Kaggle
+    # and caused the first pilot to fail after training had already succeeded.
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", "--quiet",
+        "ultralytics==8.3.203", "onnxscript", "onnxslim>=0.1.67",
+        "onnxruntime-gpu",
+    ])
+    from ultralytics import YOLO
     model = YOLO(os.getenv("BASE_MODEL", "yolo11s.pt"))
     import yaml
     portable = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
@@ -142,10 +144,33 @@ def main() -> int:
     )
     best = Path(result.save_dir) / "weights" / "best.pt"
     exported = Path(model.__class__(str(best)).export(format="onnx", imgsz=960, simplify=True))
+    import numpy as np
+    import onnx
+    import onnxruntime as ort
+    onnx_model = onnx.load(str(exported))
+    onnx.checker.check_model(onnx_model)
+    session = ort.InferenceSession(str(exported), providers=["CPUExecutionProvider"])
+    input_meta = session.get_inputs()[0]
+    input_shape = [1, 3, 960, 960]
+    outputs = session.run(None, {input_meta.name: np.zeros(input_shape, dtype=np.float32)})
+    export_validation = {
+        "onnx_checker": "PASS",
+        "runtime_provider": "CPUExecutionProvider",
+        "input_name": input_meta.name,
+        "input_shape": input_shape,
+        "output_shapes": [list(output.shape) for output in outputs],
+    }
+    dump("onnx_validation.json", export_validation)
+    result_metrics = {
+        key: float(value) for key, value in getattr(result, "results_dict", {}).items()
+        if isinstance(value, (int, float)) or hasattr(value, "item")
+    }
     metrics = {
         "run_mode": mode, "epochs": EPOCHS[mode], "best_pt": str(best),
         "best_pt_sha256": sha256(best), "best_onnx": str(exported),
         "best_onnx_sha256": sha256(exported),
+        "validation_metrics": result_metrics,
+        "onnx_validation": export_validation,
     }
     dump("training_manifest.json", metrics)
     dump("job_status.json", {"status": "TRAINING_COMPLETE", **metrics})
