@@ -32,6 +32,10 @@ on:
         description: Unique Kaggle kernel slug for this submission
         required: true
         default: roadwatch-sign-highway-v1
+      kaggle_owner:
+        description: Kaggle URL owner slug, not the display name
+        required: true
+        default: lekimnam
 
 permissions:
   contents: read
@@ -53,6 +57,7 @@ jobs:
       DATASET_PROFILE: ${{ inputs.dataset_profile }}
       SOURCE_TYPE: ${{ inputs.source_type }}
       KERNEL_SLUG: ${{ inputs.kernel_slug }}
+      KAGGLE_OWNER: ${{ inputs.kaggle_owner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -66,6 +71,10 @@ jobs:
           set -euo pipefail
           test -n "$KAGGLE_USERNAME"
           test -n "$KAGGLE_KEY"
+          [[ "$KAGGLE_OWNER" =~ ^[A-Za-z0-9_-]+$ ]] || {
+            echo "Invalid Kaggle owner slug: $KAGGLE_OWNER" >&2
+            exit 2
+          }
           if [[ "$RUN_MODE" != "quality_gate" && "$QUALITY_GATE_APPROVED" != "PASS" ]]; then
             echo "Pilot/smoke/full require quality_gate_approved=PASS" >&2
             exit 2
@@ -98,7 +107,7 @@ jobs:
           source = source.replace('__DATASET_PROFILE__', os.environ['DATASET_PROFILE'])
           open(path, 'w', encoding='utf-8').write(source)
           metadata = {
-              "id": f"{os.environ['KAGGLE_USERNAME']}/{os.environ['KERNEL_SLUG']}",
+              "id": f"{os.environ['KAGGLE_OWNER']}/{os.environ['KERNEL_SLUG']}",
               "title": "RoadWatch Sign Highway V1",
               "code_file": "script.py",
               "language": "python",
@@ -121,7 +130,7 @@ jobs:
         run: |
           set -euo pipefail
           kaggle kernels push -p .kaggle-kernel
-          echo "KERNEL_REF=${KAGGLE_USERNAME}/${KERNEL_SLUG}" >> "$GITHUB_ENV"
+          echo "KERNEL_REF=${KAGGLE_OWNER}/${KERNEL_SLUG}" >> "$GITHUB_ENV"
 
       - name: Wait for Kaggle completion
         shell: bash
