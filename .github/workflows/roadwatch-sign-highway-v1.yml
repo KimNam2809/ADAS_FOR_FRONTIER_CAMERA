@@ -108,7 +108,8 @@ jobs:
           open(path, 'w', encoding='utf-8').write(source)
           metadata = {
               "id": f"{os.environ['KAGGLE_OWNER']}/{os.environ['KERNEL_SLUG']}",
-              "title": "RoadWatch Sign Highway V1",
+              # Kaggle requires the normalized title to resolve to the id slug.
+              "title": os.environ['KERNEL_SLUG'].replace('-', ' ').title(),
               "code_file": "script.py",
               "language": "python",
               "kernel_type": "script",
