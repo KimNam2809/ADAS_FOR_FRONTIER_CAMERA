@@ -4365,3 +4365,21 @@ không được chép vào file này. Chỉ lưu đường dẫn, hash, URL và 
 - Runtime now preserves maximum/minimum roles through digit classification and
   accepts explicit restricted-vehicle labels without relying on red-ring shape.
 - Targeted sign, CVAT, context, lifecycle, and API tests passed before handoff.
+
+## POST-WORK — MINIMUM-SPEED-PUBLIC-DATA — 2026-09-22
+
+- Builder V5 and Audit V4 completed on Kaggle. Canonical taxonomy is limited to
+  `speed_limit_max` and `speed_limit_min`; TT100K `il*` supplies blue-circle
+  minimum-speed samples, while `pm*` mass restrictions are explicitly excluded.
+- Final dataset contains 7,616 images/label files, 8,257 minimum-speed instances,
+  11,271 maximum-speed instances and 800 Vietnamese red-ring hard negatives.
+- Exact cross-split duplicate count is zero after content fingerprinting and
+  sequence-grouped splitting. Visual crop review confirms blue/white minimum
+  signs and red-ring maximum signs. Near-duplicate auditing remains a declared
+  limitation; Hanoi–Hai Phong footage remains evaluation-only.
+- GitHub mobile workflow was exercised end-to-end. Run `35702679331` succeeded
+  with `QUALITY_GATE_READY`; artifact digest is
+  `sha256:30a5683bfbb348099e1a722ba031e41cf54cd1ce720fd7621dc5192af6e6d87a`.
+- Workflow now uses an explicit Kaggle URL owner slug and derives the notebook
+  title from the requested kernel slug. Production Sign V2 is unchanged;
+  research-only candidate training still requires an explicit `PASS` input.
