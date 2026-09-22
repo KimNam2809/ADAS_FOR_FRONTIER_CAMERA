@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 import json
+import random
 from PIL import Image, ImageDraw
 
 source = Path("/kaggle/input")
@@ -26,6 +27,7 @@ print(f"evidence_files={len(required) + len(contact_sheets)}")
 
 # Zoomed crops are required: full-scene sheets cannot prove small-sign semantics.
 records = [json.loads(line) for line in (target / "sample_manifest.jsonl").read_text().splitlines()]
+random.Random(162).shuffle(records)
 hash_splits = {}
 for record in records:
     hash_splits.setdefault(record["sha256"], set()).add(record["split"])
@@ -39,6 +41,7 @@ overlap = [key for key, splits in hash_splits.items() if len(splits) > 1]
 root = matches[0].parent
 for name, cid in (("minimum", 1), ("maximum", 0)):
     tiles = []
+    selected_records = []
     for record in records:
         image_path = root / record["image"]
         label_path = root / record["label"]
@@ -53,6 +56,7 @@ for name, cid in (("minimum", 1), ("maximum", 0)):
                 crop = im.crop(((x-w/2)*iw, (y-h/2)*ih, (x+w/2)*iw, (y+h/2)*ih)).convert("RGB")
                 crop.thumbnail((140, 140))
                 tiles.append(crop.copy())
+                selected_records.append({"tile": len(tiles), "image": record["image"], "split": record["split"], "source_image": record["source_image"]})
             if len(tiles) >= 48:
                 break
         if len(tiles) >= 48:
@@ -60,4 +64,6 @@ for name, cid in (("minimum", 1), ("maximum", 0)):
     sheet = Image.new("RGB", (8*150, 6*150), "#333333")
     for i, crop in enumerate(tiles):
         sheet.paste(crop, ((i%8)*150, (i//8)*150))
+        ImageDraw.Draw(sheet).text(((i%8)*150+2, (i//8)*150+135), str(i+1), fill="white")
     sheet.save(target / f"crops_{name}.jpg")
+    (target / f"crops_{name}_index.json").write_text(json.dumps(selected_records, indent=2))

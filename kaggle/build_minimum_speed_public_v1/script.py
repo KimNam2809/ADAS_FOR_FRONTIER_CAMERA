@@ -4,7 +4,6 @@ import hashlib
 import json
 import random
 import re
-import shutil
 from collections import Counter
 from pathlib import Path
 
@@ -17,6 +16,9 @@ DATASET = OUTPUT / "dataset"
 SEED = 162
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
 NAMES = ["speed_limit_max", "speed_limit_min"]
+MAX_IMAGE_EDGE = 1600
+JPEG_QUALITY = 88
+TT100K_MAX_ONLY_KEEP_PERCENT = 16
 
 # Verified against lapnguyen2003/traffic-sign-detection-vietnam/classid.xlsx.
 VN_MAX_IDS = {2, 12, 39, 40, 41, 57, 58, 59, 60, 61, 62, 63}
@@ -50,6 +52,13 @@ SOURCE_MANIFEST = {
         "Red-ring prohibition signs are retained as negative images, never relabeled as speed.",
         "This dataset is research-only because TT100K is non-commercial.",
     ],
+    "sampling_policy": {
+        "tt100k_minimum_speed": "keep_all",
+        "tt100k_maximum_speed_only": f"deterministic_{TT100K_MAX_ONLY_KEEP_PERCENT}_percent",
+        "vietnam_maximum_speed": "keep_all",
+        "vietnam_red_ring_hard_negative": "deterministic_shuffle_max_800",
+        "image_encoding": f"jpeg_quality_{JPEG_QUALITY}_max_edge_{MAX_IMAGE_EDGE}",
+    },
 }
 
 
@@ -92,6 +101,11 @@ def split_for(source: str, image: Path) -> str:
     return "val" if bucket < 2 else "train"
 
 
+def deterministic_percent(source: str, image: Path) -> int:
+    group = re.sub(r"\s*\(\d+\)$", "", image.stem)
+    return int(hashlib.sha1(f"{source}:{group}".encode()).hexdigest()[:8], 16) % 100
+
+
 def parse_rows(path: Path) -> list[tuple[int, list[float]]]:
     rows: list[tuple[int, list[float]]] = []
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -118,11 +132,15 @@ def write_sample(
     split = split_for(source, image)
     source_hash = hashlib.sha1(str(image).encode()).hexdigest()[:12]
     stem = f"{source}_{source_hash}_{re.sub(r'[^A-Za-z0-9_-]+', '_', image.stem)[:60]}"
-    image_target = DATASET / "images" / split / f"{stem}{image.suffix.lower()}"
+    image_target = DATASET / "images" / split / f"{stem}.jpg"
     label_target = DATASET / "labels" / split / f"{stem}.txt"
     image_target.parent.mkdir(parents=True, exist_ok=True)
     label_target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(image, image_target)
+    # Normalized YOLO coordinates remain valid after proportional resizing. JPEG
+    # output prevents the large TT100K PNG corpus from exhausting Kaggle storage.
+    with Image.open(image).convert("RGB") as source_image:
+        source_image.thumbnail((MAX_IMAGE_EDGE, MAX_IMAGE_EDGE), Image.Resampling.LANCZOS)
+        source_image.save(image_target, format="JPEG", quality=JPEG_QUALITY, optimize=True)
     label_target.write_text(
         "\n".join(
             f"{class_id} " + " ".join(f"{value:.8f}" for value in box)
@@ -173,7 +191,13 @@ def collect_tt100k() -> list[dict[str, object]]:
         if not mapped:
             continue
         image = find_image(label)
-        if image:
+        # Preserve every rare minimum-speed image and downsample only max-speed
+        # replay so the candidate is not dominated by the already-solved class.
+        has_minimum = any(class_id == 1 for class_id, _ in mapped)
+        if image and (
+            has_minimum
+            or deterministic_percent("tt100k_max_only", image) < TT100K_MAX_ONLY_KEEP_PERCENT
+        ):
             records.append(write_sample("tt100k", image, mapped))
     if not any("speed_limit_min" in record["instances"] for record in records):
         raise RuntimeError("No TT100K minimum-speed samples were exported")
@@ -282,7 +306,6 @@ def main() -> None:
     for split in ("train", "val"):
         for class_name in NAMES:
             contact_sheet(records, split, class_name)
-    shutil.make_archive(str(OUTPUT / "dataset"), "zip", DATASET)
     print(json.dumps(audit, indent=2))
 
 
